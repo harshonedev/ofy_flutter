@@ -1,7 +1,7 @@
 name: llm_cpp_chat_app
-description: "A new Flutter project."
+description: "A Flutter chat application with local LLM inference."
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0+1
 
 environment:
   sdk: ^3.7.2
@@ -9,11 +9,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  file_picker: ^10.0.0
+  path_provider: ^2.1.1
+  provider: ^6.1.1
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.3
+  permission_handler: ^11.0.1
+  lcpp: 0.2.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/

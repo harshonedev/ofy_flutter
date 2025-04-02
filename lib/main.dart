@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'core/theme/app_theme.dart';
+import 'features/chat/presentation/providers/chat_provider.dart';
+import 'features/model_picker/presentation/pages/model_picker_page.dart';
 
 void main() {
   runApp(const MainApp());
@@ -9,11 +13,15 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+    return MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => ChatProvider())],
+      child: MaterialApp(
+        title: 'LLM Chat App',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        debugShowCheckedModeBanner: false,
+        themeMode: ThemeMode.system,
+        home: const ModelPickerPage(),
       ),
     );
   }
