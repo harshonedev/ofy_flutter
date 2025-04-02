@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/services/model_service.dart';
 
-enum ChatState { initial, loading, ready, error }
+enum ChatState { initial, loading, ready, error, generating }
 
 class ChatProvider with ChangeNotifier {
   final ModelService _modelService = ModelService();
@@ -11,6 +11,7 @@ class ChatProvider with ChangeNotifier {
   String _currentResponse = '';
   String _selectedModelPath = '';
   String _errorMessage = '';
+  bool _isReceivingResponse = false;
 
   // Getters
   List<Message> get messages => List.unmodifiable(_messages);
@@ -18,6 +19,7 @@ class ChatProvider with ChangeNotifier {
   String get currentResponse => _currentResponse;
   String get selectedModelPath => _selectedModelPath;
   String get errorMessage => _errorMessage;
+  bool get isReceivingResponse => _isReceivingResponse;
 
   ChatProvider() {
     _initStreams();
@@ -26,15 +28,44 @@ class ChatProvider with ChangeNotifier {
   void _initStreams() {
     _modelService.responseStream.listen(
       (response) {
+        // Check if this is the completion marker
+        if (response == ModelService.completionMaker) {
+          _isReceivingResponse = false;
+          _state = ChatState.ready;
+          finalizeAssistantResponse();
+          return;
+        }
+
+        _isReceivingResponse = true;
+        _state = ChatState.generating;
         _currentResponse += response;
         notifyListeners();
       },
       onError: (error) {
         _state = ChatState.error;
         _errorMessage = error.toString();
+        _isReceivingResponse = false;
+        notifyListeners();
+      },
+      onDone: () {
+        // This should only be called when the app is being disposed
+        // or if there is a critical error
+        debugPrint(
+          "Chat Provider Stream Done - this is unexpected unless app is closing",
+        );
+        _isReceivingResponse = false;
+        _state = ChatState.error;
+        _errorMessage = "Connection to model lost. Please reload the model.";
         notifyListeners();
       },
     );
+  }
+
+  void _reinitializeStreams() {
+    if (_selectedModelPath.isNotEmpty) {
+      final currentPath = _selectedModelPath;
+      loadModel(currentPath);
+    }
   }
 
   Future<bool> loadModel(String modelPath) async {
@@ -47,11 +78,13 @@ class ChatProvider with ChangeNotifier {
 
     if (success) {
       _state = ChatState.ready;
-      // Add a system welcome message
-      addMessage(
-        'Model loaded successfully. How can I help you today?',
-        MessageRole.assistant,
-      );
+
+      if (_messages.isEmpty) {
+        addMessage(
+          'Model loaded successfully. How can I help you today?',
+          MessageRole.assistant,
+        );
+      }
     } else {
       _state = ChatState.error;
       _errorMessage = 'Failed to load model';
@@ -65,15 +98,13 @@ class ChatProvider with ChangeNotifier {
     if (content.trim().isEmpty) return;
     if (_state != ChatState.ready) return;
 
-    // Add user message
     final userMessage = Message(content: content, role: MessageRole.user);
     _messages.add(userMessage);
+    _state = ChatState.generating;
     notifyListeners();
 
-    // Reset current response
     _currentResponse = '';
 
-    // Send the prompt to the model - just use the content directly
     try {
       await _modelService.sendPrompt(content);
     } catch (e) {
@@ -86,10 +117,7 @@ class ChatProvider with ChangeNotifier {
   void finalizeAssistantResponse() {
     if (_currentResponse.trim().isEmpty) return;
 
-    // Add assistant message with the complete response
     addMessage(_currentResponse, MessageRole.assistant);
-
-    // Reset current response
     _currentResponse = '';
     notifyListeners();
   }

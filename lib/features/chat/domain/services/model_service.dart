@@ -6,27 +6,50 @@ import 'dart:math' as math;
 
 class ModelService {
   Llama? _llama;
-  final _responseController = StreamController<String>.broadcast();
+  StreamController<String>? _responseController;
   bool _isModelLoaded = false;
   StreamSubscription? _currentStreamSubscription;
+  String _lastResponse = '';
 
-  Stream<String> get responseStream => _responseController.stream;
+  // Add this to store conversation history
+  final List<ChatMessage> _conversationHistory = [];
+
+  // Completion marker to signal end of response
+  static const String completionMaker = "<<DONE>>";
+
+  Stream<String> get responseStream {
+    _responseController ??= StreamController<String>.broadcast();
+    return _responseController!.stream;
+  }
+
   bool get isModelLoaded => _isModelLoaded;
 
   Future<bool> loadModel(String modelPath) async {
     try {
-      // Create a new Llama instance with the model file
+      // Reset state if needed
+      await cancelCurrentRequest();
+
+      // Create a new stream controller if needed
+      if (_responseController == null || _responseController!.isClosed) {
+        _responseController = StreamController<String>.broadcast();
+      }
+
+      // Increase context size and adjust parameters
       _llama = Llama(
         LlamaController(
           modelPath: modelPath,
           nCtx: 2048,
           nBatch: 512,
           seed: math.Random().nextInt(1000000),
-          greedy: false, // Use sampling instead of greedy decoding
+          greedy: false,
         ),
       );
 
       _isModelLoaded = true;
+      // Clear conversation history when loading new model
+      _conversationHistory.clear();
+      _lastResponse = '';
+      debugPrint("Model Loaded Successfully");
       return true;
     } catch (e) {
       debugPrint('Error loading model: $e');
@@ -42,44 +65,67 @@ class ModelService {
 
   Future<void> sendPrompt(String prompt) async {
     if (!_isModelLoaded || _llama == null) {
-      _responseController.addError('Model not loaded');
+      _responseController?.addError('Model not loaded');
       return;
     }
 
     try {
-      // Cancel any running request
       await cancelCurrentRequest();
+      _lastResponse = '';
 
-      // Create chat messages
-      final messages = [
-        ChatMessage.withRole(
-          role: 'system',
-          content: 'You are a helpful assistant.',
-        ),
-        ChatMessage.withRole(role: 'user', content: prompt),
-      ];
+      // Create a new stream controller if needed
+      if (_responseController == null || _responseController!.isClosed) {
+        _responseController = StreamController<String>.broadcast();
+      }
 
-      // Start inference
-      debugPrint('Sending prompt: $prompt');
-      final stream = _llama!.prompt(messages);
+      // Add system message if needed
+      if (_conversationHistory.isEmpty) {
+        _conversationHistory.add(
+          ChatMessage.withRole(
+            role: 'system',
+            content: 'You are a helpful assistant.',
+          ),
+        );
+      }
 
-      // Listen to the stream and forward responses to the controller
+      final userMessage = ChatMessage.withRole(role: 'user', content: prompt);
+      _conversationHistory.add(userMessage);
+
+      if (_conversationHistory.length > 10) {
+        _conversationHistory.removeRange(0, _conversationHistory.length - 10);
+      }
+
+      debugPrint('Sending prompt with ${_conversationHistory.length} messages');
+
+      final stream = _llama!.prompt(_conversationHistory);
+
       _currentStreamSubscription = stream.listen(
         (response) {
-          _responseController.add(response);
+          _lastResponse += response;
+          _responseController?.add(response);
         },
         onError: (error) {
           debugPrint('Error during inference: $error');
-          _responseController.addError('Error during inference: $error');
+          _responseController?.addError('Error during inference: $error');
         },
         onDone: () {
-          debugPrint('Inference completed');
+          debugPrint('Inference completed with response: $_lastResponse');
+
+          // Add assistant's response to history
+          if (_lastResponse.isNotEmpty) {
+            _conversationHistory.add(
+              ChatMessage.withRole(role: 'assistant', content: _lastResponse),
+            );
+          }
           _currentStreamSubscription = null;
+
+          // Signal completion with marker instead of closing the stream
+          _responseController?.add(completionMaker);
         },
       );
     } catch (e) {
       debugPrint('Error sending prompt: $e');
-      _responseController.addError('Error sending prompt: $e');
+      _responseController?.addError('Error sending prompt: $e');
     }
   }
 
@@ -116,6 +162,13 @@ class ModelService {
     cancelCurrentRequest();
     _llama?.stop();
     _llama?.reload();
-    _responseController.close();
+    _conversationHistory.clear();
+    _lastResponse = '';
+
+    // Close the stream controller only when disposing the service
+    if (_responseController != null && !_responseController!.isClosed) {
+      _responseController!.close();
+      _responseController = null;
+    }
   }
 }

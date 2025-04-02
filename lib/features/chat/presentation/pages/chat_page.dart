@@ -59,6 +59,11 @@ class _ChatPageState extends State<ChatPage> {
                 final messages = provider.messages;
                 final currentResponse = provider.currentResponse;
 
+                // Scroll to bottom when new messages arrive
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToBottom();
+                });
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),

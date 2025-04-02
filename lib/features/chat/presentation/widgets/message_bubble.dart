@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../domain/entities/message.dart';
+import '../providers/chat_provider.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -15,6 +17,13 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isUser = message.role == MessageRole.user;
+    final chatProvider = Provider.of<ChatProvider>(context);
+
+    // Only show typing indicator for the current response that's being generated
+    final showTypingIndicator =
+        isTyping &&
+        chatProvider.isReceivingResponse &&
+        chatProvider.state == ChatState.generating;
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -56,7 +65,7 @@ class MessageBubble extends StatelessWidget {
                             : theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                if (isTyping) ...[
+                if (showTypingIndicator) ...[
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 12,
