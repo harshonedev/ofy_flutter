@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/model_type.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
+import '../../../model_picker/presentation/pages/model_picker_page.dart';
 import '../../domain/entities/message.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/message_bubble.dart';
@@ -47,6 +50,25 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsPage()),
+    );
+  }
+
+  void _selectLocalModel() {
+    final provider = Provider.of<ChatProvider>(context, listen: false);
+    if (provider.modelType == ModelType.local) return;
+
+    provider.switchToLocalModel().then((_) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ModelPickerPage()),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ChatProvider>(
@@ -54,6 +76,7 @@ class _ChatPageState extends State<ChatPage> {
         final messages = provider.messages;
         final currentResponse = provider.currentResponse;
         final isReady = provider.state == ChatState.ready;
+        final modelType = provider.modelType;
 
         return PopScope(
           canPop: false,
@@ -65,9 +88,114 @@ class _ChatPageState extends State<ChatPage> {
             }
           },
           child: Scaffold(
-            appBar: AppBar(title: const Text(AppConstants.chatScreenTitle)),
+            appBar: AppBar(
+              title: Row(
+                children: [
+                  Text(AppConstants.chatScreenTitle),
+                  if (modelType == ModelType.openAi)
+                    Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'OpenAI',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                if (modelType == ModelType.local)
+                  IconButton(
+                    icon: const Icon(Icons.folder_open),
+                    tooltip: 'Change Local Model',
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModelPickerPage(),
+                        ),
+                      );
+                    },
+                  ),
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert),
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'settings',
+                          child: Row(
+                            children: [
+                              Icon(Icons.settings, size: 20),
+                              SizedBox(width: 8),
+                              Text('Settings'),
+                            ],
+                          ),
+                        ),
+                        if (modelType == ModelType.openAi)
+                          const PopupMenuItem(
+                            value: 'switchToLocal',
+                            child: Row(
+                              children: [
+                                Icon(Icons.computer, size: 20),
+                                SizedBox(width: 8),
+                                Text('Switch to Local Model'),
+                              ],
+                            ),
+                          ),
+                        const PopupMenuItem(
+                          value: 'clearChat',
+                          child: Row(
+                            children: [
+                              Icon(Icons.cleaning_services, size: 20),
+                              SizedBox(width: 8),
+                              Text('Clear Chat'),
+                            ],
+                          ),
+                        ),
+                      ],
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'settings':
+                        _openSettings();
+                        break;
+                      case 'switchToLocal':
+                        _selectLocalModel();
+                        break;
+                      case 'clearChat':
+                        provider.clearMessages();
+                        break;
+                    }
+                  },
+                ),
+              ],
+            ),
             body: Column(
               children: [
+                if (provider.state == ChatState.error)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.all(8),
+                    color: Colors.red.withOpacity(0.1),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            provider.errorMessage,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Expanded(
                   child: Builder(
                     builder: (context) {
