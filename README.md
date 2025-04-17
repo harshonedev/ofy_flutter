@@ -8,6 +8,7 @@ A Flutter-based cross-platform chat application that integrates on-device genera
 - Chat with the selected model locally (offline)
 - Real-time token streaming for AI responses
 - Clean and intuitive UI with Material 3 design
+- BLoC architecture with GetIt dependency injection
 
 ## Getting Started
 
@@ -25,19 +26,26 @@ A Flutter-based cross-platform chat application that integrates on-device genera
 
 ## Dependencies
 
-- llama_cpp_dart: ^0.0.7
-- file_picker: ^6.1.1
-- provider: ^6.1.1
+- lcpp: ^0.2.5 (for local LLM inference)
+- flutter_bloc: ^9.1.0 (for state management)
+- get_it: ^8.0.3 (for dependency injection)
+- dartz: ^0.10.1 (for functional error handling)
+- equatable: ^2.0.5 (for value comparisons)
+- file_picker: ^10.0.0
 - path_provider: ^2.1.1
+- shared_preferences: ^2.5.3
 
 ## Project Architecture
 
-The app follows a clean architecture approach with:
+This project follows Clean Architecture principles with BLoC pattern for state management and GetIt for dependency injection. See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed information about the project structure.
 
-- Core: Constants, theme, and utilities
-- Features: Model picker and chat functionality
-- Domain: Entities and services
-- Presentation: UI and state management
+### Key Architecture Concepts
+
+- **Clean Architecture**: Separation of concerns with layers (presentation, domain, data)
+- **BLoC Pattern**: Business Logic Components for state management
+- **Dependency Injection**: Using GetIt as service locator
+- **Repository Pattern**: Abstracting data sources
+- **Use Cases**: Encapsulating business logic operations
 
 ## License
 

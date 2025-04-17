@@ -1,0 +1,30 @@
+# LLM CPP Chat App - Development Progress
+
+## Completed Features
+- [x] Project structure setup with clean architecture
+- [x] Basic app configuration with theme support
+- [x] Settings repository for user preferences
+- [x] Model type configuration
+- [x] Multi-platform support (Android, Windows, Linux, Web)
+- [x] Provider pattern implementation for state management
+- [x] ModelPicker page structure
+
+## In Progress Features
+- [ ] Chat UI implementation
+- [ ] Local model loading and inference
+- [ ] Token streaming for AI responses
+- [ ] Model management (adding, removing models)
+- [ ] Chat history persistence
+
+## Planned Features
+- [ ] iOS optimization
+- [ ] Advanced settings for model parameters
+- [ ] Prompt templates
+- [ ] Chat export functionality
+- [ ] Performance optimizations for larger models
+
+## Known Issues
+- [ ] Document and address any performance issues with large models
+- [ ] Test and optimize file access permissions across platforms
+
+## Last Updated: April 17, 2025

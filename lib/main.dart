@@ -1,36 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
-import 'core/constants/model_type.dart';
-import 'features/chat/presentation/providers/chat_provider.dart';
+import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/model_picker/presentation/bloc/model_picker_bloc.dart';
+import 'features/model_picker/presentation/bloc/model_picker_event.dart';
 import 'features/model_picker/presentation/pages/model_picker_page.dart';
-import 'features/settings/data/repositories/settings_repository.dart';
+import 'features/settings/presentation/bloc/settings_bloc.dart';
 
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize settings repository
-  final settingsRepository = SettingsRepository();
+  // Initialize dependency injection
+  await di.init();
 
-  // Get model type preference at app start
-  final modelType = await settingsRepository.getModelTypePreference();
-
-  runApp(MainApp(initialModelType: modelType));
+  runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
-  final ModelType initialModelType;
-
-  const MainApp({super.key, this.initialModelType = ModelType.local});
+  const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => ChatProvider())],
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => di.sl<ChatBloc>()),
+        BlocProvider(create: (_) => di.sl<SettingsBloc>()),
+        BlocProvider(
+          create: (context) {
+            final bloc = di.sl<ModelPickerBloc>();
+            // Fetch model path at startup
+            bloc.add(GetModelPathEvent());
+            return bloc;
+          },
+        ),
+      ],
       child: MaterialApp(
-        title: 'LLM Chat App',
+        title: 'OfflineAI',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         debugShowCheckedModeBanner: false,

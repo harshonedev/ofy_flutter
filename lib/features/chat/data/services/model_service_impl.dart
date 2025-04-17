@@ -1,29 +1,34 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:lcpp/lcpp.dart';
-import '../entities/message.dart' as app;
 import 'dart:math' as math;
 
-class ModelService {
+import '../../domain/entities/message.dart';
+import '../../domain/services/model_service_interface.dart';
+
+class ModelServiceImpl implements ModelServiceInterface {
   Llama? _llama;
   StreamController<String>? _responseController;
   bool _isModelLoaded = false;
   StreamSubscription? _currentStreamSubscription;
   String _lastResponse = '';
 
-  // Add this to store conversation history
+  // Store conversation history
   final List<ChatMessage> _conversationHistory = [];
 
   // Completion marker to signal end of response
-  static const String completionMaker = "<<DONE>>";
+  static const String completionMarker = "<<DONE>>";
 
+  @override
   Stream<String> get responseStream {
     _responseController ??= StreamController<String>.broadcast();
     return _responseController!.stream;
   }
 
+  @override
   bool get isModelLoaded => _isModelLoaded;
 
+  @override
   Future<bool> loadModel(String modelPath) async {
     try {
       // Reset state if needed
@@ -58,11 +63,13 @@ class ModelService {
     }
   }
 
+  @override
   Future<void> cancelCurrentRequest() async {
     await _currentStreamSubscription?.cancel();
     _currentStreamSubscription = null;
   }
 
+  @override
   Future<void> sendPrompt(String prompt) async {
     if (!_isModelLoaded || _llama == null) {
       _responseController?.addError('Model not loaded');
@@ -91,6 +98,7 @@ class ModelService {
       final userMessage = ChatMessage.withRole(role: 'user', content: prompt);
       _conversationHistory.add(userMessage);
 
+      // Keep conversation history manageable
       if (_conversationHistory.length > 10) {
         _conversationHistory.removeRange(0, _conversationHistory.length - 10);
       }
@@ -120,7 +128,7 @@ class ModelService {
           _currentStreamSubscription = null;
 
           // Signal completion with marker instead of closing the stream
-          _responseController?.add(completionMaker);
+          _responseController?.add(completionMarker);
         },
       );
     } catch (e) {
@@ -129,28 +137,29 @@ class ModelService {
     }
   }
 
-  String buildPrompt(List<app.Message> messages) {
+  @override
+  String buildPrompt(List<Message> messages) {
     // With lcpp we just return the last user message
     // since we handle the conversation in the messages list
     for (final message in messages.reversed) {
-      if (message.role == app.MessageRole.user) {
+      if (message.role == MessageRole.user) {
         return message.content;
       }
     }
     return '';
   }
 
-  List<ChatMessage> convertAppMessages(List<app.Message> appMessages) {
+  List<ChatMessage> convertAppMessages(List<Message> appMessages) {
     return appMessages.map((msg) {
       String role;
       switch (msg.role) {
-        case app.MessageRole.user:
+        case MessageRole.user:
           role = 'user';
           break;
-        case app.MessageRole.assistant:
+        case MessageRole.assistant:
           role = 'assistant';
           break;
-        case app.MessageRole.system:
+        case MessageRole.system:
           role = 'system';
           break;
       }
@@ -158,6 +167,7 @@ class ModelService {
     }).toList();
   }
 
+  @override
   void dispose() {
     cancelCurrentRequest();
     _llama?.stop();

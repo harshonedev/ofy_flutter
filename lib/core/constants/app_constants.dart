@@ -1,6 +1,6 @@
 class AppConstants {
   // App Info
-  static const String appName = 'LLM Chat App';
+  static const String appName = 'OfflineAI';
   static const String appVersion = '1.0.0';
 
   // Model Files
@@ -8,7 +8,7 @@ class AppConstants {
 
   // Chat Messages
   static const String welcomeMessage =
-      'Welcome to LLM Chat App! You can chat with a local model or use OpenAI.';
+      'Welcome to OfflineAI! You can chat with a local model or use OpenAI.';
   static const String modelLoadingMessage = 'Loading model, please wait...';
   static const String modelLoadingErrorMessage =
       'Failed to load model. Please try again with a different model file.';

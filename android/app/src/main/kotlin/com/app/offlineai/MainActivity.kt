@@ -1,4 +1,4 @@
-package com.example.llm_cpp_chat_app
+package com.app.offlineai
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/model_type.dart';
-import '../../../settings/presentation/pages/settings_page.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../model_picker/presentation/pages/model_picker_page.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
 import '../../domain/entities/message.dart';
-import '../providers/chat_provider.dart';
+import '../bloc/chat_bloc.dart';
+import '../bloc/chat_event.dart';
+import '../bloc/chat_state.dart';
 import '../widgets/message_bubble.dart';
 
 class ChatPage extends StatefulWidget {
@@ -18,6 +22,12 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ChatBloc>().add(GetChatHistoryEvent());
+  }
 
   @override
   void dispose() {
@@ -40,8 +50,13 @@ class _ChatPageState extends State<ChatPage> {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
 
-    final provider = Provider.of<ChatProvider>(context, listen: false);
-    provider.sendMessage(message);
+    context.read<ChatBloc>().add(
+      SendMessageEvent(
+        message: message,
+        // Get model path from dependencies if needed
+        // modelPath: sl<ModelPathProvider>().modelPath,
+      ),
+    );
     _messageController.clear();
 
     // Scroll to the bottom after the message is sent
@@ -58,25 +73,34 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _selectLocalModel() {
-    final provider = Provider.of<ChatProvider>(context, listen: false);
-    if (provider.modelType == ModelType.local) return;
+    context.read<ChatBloc>().add(
+      const SwitchModelTypeEvent(useLocalModel: true),
+    );
 
-    provider.switchToLocalModel().then((_) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ModelPickerPage()),
-      );
-    });
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ModelPickerPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ChatProvider>(
-      builder: (context, provider, child) {
-        final messages = provider.messages;
-        final currentResponse = provider.currentResponse;
-        final isReady = provider.state == ChatState.ready;
-        final modelType = provider.modelType;
+    return BlocBuilder<ChatBloc, ChatState>(
+      builder: (context, state) {
+        bool isReady = false;
+        ModelType modelType = ModelType.local;
+        List<Message> messages = [];
+        String currentResponse = '';
+        String errorMessage = '';
+
+        if (state is ChatLoaded) {
+          isReady = true;
+          modelType = state.modelType;
+          messages = state.messages;
+          currentResponse = state.currentResponse ?? '';
+        } else if (state is ChatError) {
+          errorMessage = state.message;
+        }
 
         return PopScope(
           canPop: false,
@@ -91,7 +115,7 @@ class _ChatPageState extends State<ChatPage> {
             appBar: AppBar(
               title: Row(
                 children: [
-                  Text(AppConstants.chatScreenTitle),
+                  const Text(AppConstants.chatScreenTitle),
                   if (modelType == ModelType.openAi)
                     Container(
                       margin: const EdgeInsets.only(left: 8),
@@ -169,7 +193,7 @@ class _ChatPageState extends State<ChatPage> {
                         _selectLocalModel();
                         break;
                       case 'clearChat':
-                        provider.clearMessages();
+                        context.read<ChatBloc>().add(ClearChatEvent());
                         break;
                     }
                   },
@@ -178,7 +202,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
             body: Column(
               children: [
-                if (provider.state == ChatState.error)
+                if (state is ChatError)
                   Container(
                     padding: const EdgeInsets.all(8),
                     margin: const EdgeInsets.all(8),
@@ -189,7 +213,7 @@ class _ChatPageState extends State<ChatPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            provider.errorMessage,
+                            errorMessage,
                             style: const TextStyle(color: Colors.red),
                           ),
                         ),

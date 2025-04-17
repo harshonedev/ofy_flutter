@@ -1,10 +1,12 @@
 // filepath: /home/harsh/FlutterProjects/llm_cpp_chat_app-1/lib/features/settings/presentation/pages/settings_page.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/model_type.dart';
-import '../../../chat/presentation/providers/chat_provider.dart';
-import '../../data/repositories/settings_repository.dart';
+import '../bloc/settings_bloc.dart';
+import '../bloc/settings_event.dart';
+import '../bloc/settings_state.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,237 +16,149 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _apiKeyController = TextEditingController();
-  final _openAiModelController = TextEditingController();
-  final _settingsRepository = SettingsRepository();
-  bool _isLoading = true;
-  bool _obscureApiKey = true;
+  final TextEditingController _apiKeyController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final apiKey = await _settingsRepository.getOpenAiApiKey() ?? '';
-    final openAiModel = await _settingsRepository.getOpenAiModel();
-
-    setState(() {
-      _apiKeyController.text = apiKey;
-      _openAiModelController.text = openAiModel;
-      _isLoading = false;
-    });
+    context.read<SettingsBloc>().add(GetSettingsEvent());
   }
 
   @override
   void dispose() {
     _apiKeyController.dispose();
-    _openAiModelController.dispose();
     super.dispose();
-  }
-
-  void _saveSettings() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await _settingsRepository.saveOpenAiApiKey(_apiKeyController.text);
-      await _settingsRepository.saveOpenAiModel(_openAiModelController.text);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(AppConstants.apiKeySavedMessage),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving settings: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _setModelType(ModelType type) async {
-    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-
-    if (type == ModelType.openAi) {
-      if (_apiKeyController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppConstants.openAiApiKeyMissing),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      await chatProvider.switchToOpenAI();
-    } else {
-      await chatProvider.switchToLocalModel();
-    }
-
-    if (!mounted) return;
-    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text(AppConstants.settingsTitle)),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(title: const Text(AppConstants.settingsTitle)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Model Type Selection
-            Card(
-              margin: const EdgeInsets.only(bottom: 16.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppConstants.modelSelectionTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16.0),
-                    Consumer<ChatProvider>(
-                      builder: (context, provider, _) {
-                        return Column(
-                          children: [
-                            ListTile(
-                              title: const Text(AppConstants.localModelLabel),
-                              leading: Radio<ModelType>(
-                                value: ModelType.local,
-                                groupValue: provider.modelType,
-                                onChanged: (ModelType? value) {
-                                  if (value != null) {
-                                    _setModelType(value);
-                                  }
-                                },
-                              ),
-                              subtitle: const Text(
-                                'Process models locally on your device',
-                              ),
-                              dense: true,
-                            ),
-                            ListTile(
-                              title: const Text(AppConstants.openAiModelLabel),
-                              leading: Radio<ModelType>(
-                                value: ModelType.openAi,
-                                groupValue: provider.modelType,
-                                onChanged: (ModelType? value) {
-                                  if (value != null) {
-                                    _setModelType(value);
-                                  }
-                                },
-                              ),
-                              subtitle: const Text(
-                                'Use OpenAI API (requires internet and API key)',
-                              ),
-                              dense: true,
-                            ),
-                          ],
-                        );
+      body: BlocConsumer<SettingsBloc, SettingsState>(
+        listener: (context, state) {
+          if (state is SettingsLoaded) {
+            if (state.apiKey != null && _apiKeyController.text.isEmpty) {
+              _apiKeyController.text = state.apiKey!;
+            }
+
+            if (state.saveSuccess == true) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text(AppConstants.apiKeySavedMessage)),
+              );
+            }
+          }
+        },
+        builder: (context, state) {
+          if (state is SettingsInitial || state is SettingsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is SettingsError) {
+            return Center(
+              child: Text(
+                'Error: ${state.message}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          } else if (state is SettingsLoaded) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Model Type Selection
+                  const Text(
+                    AppConstants.modelSelectionTitle,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    title: const Text(AppConstants.localModelLabel),
+                    leading: Radio<ModelType>(
+                      value: ModelType.local,
+                      groupValue: state.modelType,
+                      onChanged: (ModelType? value) {
+                        if (value != null) {
+                          context.read<SettingsBloc>().add(
+                            SaveModelTypeEvent(modelType: value),
+                          );
+                        }
                       },
                     ),
-                  ],
-                ),
-              ),
-            ),
-
-            // OpenAI Settings
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppConstants.openAiSettingsTitle,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 16.0),
-                      // API Key field
-                      TextFormField(
-                        controller: _apiKeyController,
-                        decoration: InputDecoration(
-                          labelText: AppConstants.apiKeyHint,
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureApiKey
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureApiKey = !_obscureApiKey;
-                              });
-                            },
-                          ),
-                        ),
-                        obscureText: _obscureApiKey,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your OpenAI API key';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16.0),
-                      // OpenAI Model field
-                      TextFormField(
-                        controller: _openAiModelController,
-                        decoration: const InputDecoration(
-                          labelText: 'OpenAI Model',
-                          border: OutlineInputBorder(),
-                          hintText: 'gpt-3.5-turbo',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter an OpenAI model name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16.0),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _saveSettings,
-                          child: const Text(AppConstants.saveButtonText),
-                        ),
-                      ),
-                    ],
                   ),
-                ),
+                  ListTile(
+                    title: const Text(AppConstants.openAiModelLabel),
+                    leading: Radio<ModelType>(
+                      value: ModelType.openAi,
+                      groupValue: state.modelType,
+                      onChanged: (ModelType? value) {
+                        if (value != null) {
+                          context.read<SettingsBloc>().add(
+                            SaveModelTypeEvent(modelType: value),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // OpenAI Settings
+                  if (state.modelType == ModelType.openAi) ...[
+                    const Text(
+                      AppConstants.openAiSettingsTitle,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _apiKeyController,
+                      decoration: const InputDecoration(
+                        labelText: 'API Key',
+                        hintText: AppConstants.apiKeyHint,
+                        border: OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (_apiKeyController.text.isNotEmpty) {
+                          context.read<SettingsBloc>().add(
+                            SaveApiKeyEvent(apiKey: _apiKeyController.text),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(AppConstants.apiKeyErrorMessage),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text(AppConstants.saveButtonText),
+                    ),
+                  ],
+
+                  // Local Model Settings
+                  if (state.modelType == ModelType.local) ...[
+                    const Text(
+                      AppConstants.localModelSettingsTitle,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Local model settings will be configured when you select a model file.',
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ],
-        ),
+            );
+          } else {
+            return const Center(child: Text('Unknown state'));
+          }
+        },
       ),
     );
   }
