@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_bloc.dart';
+import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_state.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/model_type.dart';
@@ -22,6 +24,7 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  bool _isActive = true;
 
   @override
   void initState() {
@@ -52,6 +55,9 @@ class _ChatPageState extends State<ChatPage> {
     if (message.isEmpty) return;
 
     context.read<ChatBloc>().add(SendMessageEvent(message: message));
+    setState(() {
+      _isActive = false;
+    });
     _messageController.clear();
 
     // Scroll to the bottom after the message is sent
@@ -83,123 +89,146 @@ class _ChatPageState extends State<ChatPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return BlocBuilder<ChatBloc, ChatState>(
-      builder: (context, state) {
-        bool isReady = false;
-        ModelType modelType = ModelType.local;
-        List<Message> messages = [];
-        String currentResponse = '';
-        String errorMessage = '';
-
-        if (state is ChatLoaded) {
-          isReady = true;
-          modelType = state.modelType;
-          messages = state.messages;
-          currentResponse = state.currentResponse ?? '';
-
-          // Auto-scroll when new content is added
-          if (currentResponse.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _scrollToBottom(),
-            );
-          }
-        } else if (state is ChatError) {
-          errorMessage = state.message;
+    return BlocListener<ModelPickerBloc, ModelPickerState>(
+      listener: (context, state) {
+        if (state is ModelPickerLoaded) {
+          // Update the model path in the chat bloc
+          print('Model path: ${state.modelPath}');
+          context.read<ChatBloc>().add(
+            InitializeModelEvent(modelPath: state.modelPath!),
+          );
         }
-
-        return Scaffold(
-          appBar: AppBar(
-            scrolledUnderElevation: 1,
-            elevation: 0,
-            shadowColor: colorScheme.shadow.withOpacity(0.1),
-            surfaceTintColor: Colors.transparent,
-            centerTitle: false,
-            // Ensure title row doesn't overflow
-            title: Row(
-              mainAxisSize:
-                  MainAxisSize.min, // Prevent row from taking max width
-              children: [
-                Flexible(
-                  // Allow title to shrink
-                  child: Text(
-                    AppConstants.chatScreenTitle,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                    overflow: TextOverflow.ellipsis, // Handle overflow
-                    maxLines: 1,
-                  ),
-                ),
-                // Add spacing before badges
-                if (modelType == ModelType.openAi ||
-                    (modelType == ModelType.local && isReady))
-                  const SizedBox(width: 8),
-                // Badges (conditionally shown)
-                if (modelType == ModelType.openAi)
-                  _buildModelBadge(colorScheme),
-                if (modelType == ModelType.local && isReady)
-                  _buildLocalModelBadge(colorScheme),
-              ],
+        if (state is ModelPickerError) {
+          // Handle error state
+          print('Error: ${state.message}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${state.message}'),
+              backgroundColor: colorScheme.error,
             ),
-            actions: [
-              if (modelType == ModelType.local)
+          );
+        }
+      },
+      child: BlocBuilder<ChatBloc, ChatState>(
+        builder: (context, state) {
+          bool isReady = false;
+          ModelType modelType = ModelType.local;
+          List<Message> messages = [];
+          String currentResponse = '';
+          String errorMessage = '';
+
+          if (state is ChatLoaded) {
+            isReady = true;
+            modelType = state.modelType;
+            messages = state.messages;
+            currentResponse = state.currentResponse ?? '';
+
+            // Auto-scroll when new content is added
+            if (currentResponse.isNotEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _scrollToBottom(),
+              );
+            }
+          } else if (state is ChatError) {
+            errorMessage = state.message;
+          }
+
+          return Scaffold(
+            appBar: AppBar(
+              scrolledUnderElevation: 1,
+              elevation: 0,
+              shadowColor: colorScheme.shadow.withOpacity(0.1),
+              surfaceTintColor: Colors.transparent,
+              centerTitle: false,
+              // Ensure title row doesn't overflow
+              title: Row(
+                mainAxisSize:
+                    MainAxisSize.min, // Prevent row from taking max width
+                children: [
+                  Flexible(
+                    // Allow title to shrink
+                    child: Text(
+                      AppConstants.chatScreenTitle,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis, // Handle overflow
+                      maxLines: 1,
+                    ),
+                  ),
+                  // Add spacing before badges
+                  if (modelType == ModelType.openAi ||
+                      (modelType == ModelType.local && isReady))
+                    const SizedBox(width: 8),
+                  // Badges (conditionally shown)
+                  if (modelType == ModelType.openAi)
+                    _buildModelBadge(colorScheme),
+                  if (modelType == ModelType.local && isReady)
+                    _buildLocalModelBadge(colorScheme),
+                ],
+              ),
+              actions: [
+                if (modelType == ModelType.local)
+                  IconButton(
+                    icon: const Icon(Icons.folder_open_rounded),
+                    tooltip: 'Change Local Model',
+                    style: IconButton.styleFrom(
+                      foregroundColor: colorScheme.onSurfaceVariant,
+                      padding: const EdgeInsets.all(
+                        10,
+                      ), // Slightly reduced padding
+                    ),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModelPickerPage(),
+                        ),
+                      );
+                    },
+                  ),
                 IconButton(
-                  icon: const Icon(Icons.folder_open_rounded),
-                  tooltip: 'Change Local Model',
+                  icon: const Icon(Icons.settings_rounded),
+                  tooltip: 'Settings',
                   style: IconButton.styleFrom(
                     foregroundColor: colorScheme.onSurfaceVariant,
                     padding: const EdgeInsets.all(
                       10,
                     ), // Slightly reduced padding
                   ),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ModelPickerPage(),
-                      ),
-                    );
-                  },
+                  onPressed: _openSettings,
                 ),
-              IconButton(
-                icon: const Icon(Icons.settings_rounded),
-                tooltip: 'Settings',
-                style: IconButton.styleFrom(
-                  foregroundColor: colorScheme.onSurfaceVariant,
-                  padding: const EdgeInsets.all(10), // Slightly reduced padding
-                ),
-                onPressed: _openSettings,
-              ),
-              _buildOptionsMenu(colorScheme, modelType),
-              const SizedBox(width: 4), // Add slight padding at the end
-            ],
-          ),
-          body: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                // Error message display
-                if (state is ChatError)
-                  _buildErrorMessage(colorScheme, errorMessage),
-
-                // Chat messages area
-                Expanded(
-                  child: _buildChatContent(
-                    isReady: isReady,
-                    colorScheme: colorScheme,
-                    messages: messages,
-                    currentResponse: currentResponse,
-                  ),
-                ),
-
-                // Message input area
-                _buildMessageInput(colorScheme, state),
+                _buildOptionsMenu(colorScheme, modelType),
+                const SizedBox(width: 4), // Add slight padding at the end
               ],
             ),
-          ),
-        );
-      },
+            body: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  // Error message display
+                  if (state is ChatError)
+                    _buildErrorMessage(colorScheme, errorMessage),
+
+                  // Chat messages area
+                  Expanded(
+                    child: _buildChatContent(
+                      isReady: isReady,
+                      colorScheme: colorScheme,
+                      messages: messages,
+                      currentResponse: currentResponse,
+                    ),
+                  ),
+
+                  // Message input area
+                  _buildMessageInput(colorScheme, state),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -500,6 +529,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
                 child: TextField(
+                  enabled: _isActive,
                   controller: _messageController,
                   focusNode: _focusNode,
                   maxLines: 5,

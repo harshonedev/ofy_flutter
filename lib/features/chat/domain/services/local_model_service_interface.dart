@@ -1,7 +1,7 @@
 import 'dart:async';
 import '../entities/message.dart';
 
-abstract class ModelServiceInterface {
+abstract class LocalModelServiceInterface {
   Stream<String> get responseStream;
   bool get isModelLoaded;
 

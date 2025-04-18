@@ -11,4 +11,6 @@ abstract class ChatRepository {
     String? modelPath,
   });
   Future<Either<Failure, bool>> clearChatHistory();
+  Future<Either<Failure, bool>> updateChatHistory(Message message); 
+  
 }

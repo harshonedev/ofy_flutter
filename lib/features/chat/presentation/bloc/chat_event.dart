@@ -49,3 +49,12 @@ class InitializeModelEvent extends ChatEvent {
 }
 
 class CompleteResponseEvent extends ChatEvent {}
+
+class SubscriptionErrorEvent extends ChatEvent {
+  final String error;
+
+  const SubscriptionErrorEvent({required this.error});
+
+  @override
+  List<Object?> get props => [error];
+}

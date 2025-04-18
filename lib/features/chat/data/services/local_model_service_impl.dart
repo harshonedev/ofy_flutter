@@ -4,9 +4,9 @@ import 'package:lcpp/lcpp.dart';
 import 'dart:math' as math;
 
 import '../../domain/entities/message.dart';
-import '../../domain/services/model_service_interface.dart';
+import '../../domain/services/local_model_service_interface.dart';
 
-class ModelServiceImpl implements ModelServiceInterface {
+class LocalModelServiceImpl implements LocalModelServiceInterface {
   Llama? _llama;
   StreamController<String>? _responseController;
   bool _isModelLoaded = false;

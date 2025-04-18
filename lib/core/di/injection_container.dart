@@ -1,12 +1,13 @@
 import 'package:get_it/get_it.dart';
+import 'package:llm_cpp_chat_app/features/chat/domain/usecases/update_chat_history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/chat/data/datasources/local_chat_datasource.dart';
 import '../../features/chat/data/datasources/remote_chat_datasource.dart';
 import '../../features/chat/data/repositories/chat_repository_impl.dart';
-import '../../features/chat/data/services/model_service_impl.dart';
+import '../../features/chat/data/services/local_model_service_impl.dart';
 import '../../features/chat/domain/repositories/chat_repository.dart';
-import '../../features/chat/domain/services/model_service_interface.dart';
+import '../../features/chat/domain/services/local_model_service_interface.dart';
 import '../../features/chat/domain/usecases/clear_chat_history.dart';
 import '../../features/chat/domain/usecases/get_chat_history.dart';
 import '../../features/chat/domain/usecases/send_message.dart';
@@ -29,7 +30,9 @@ final sl = GetIt.instance;
 Future<void> init() async {
   //! Features - Chat
   // Services
-  sl.registerLazySingleton<ModelServiceInterface>(() => ModelServiceImpl());
+  sl.registerLazySingleton<LocalModelServiceInterface>(
+    () => LocalModelServiceImpl(),
+  );
 
   // Bloc
   sl.registerFactory(
@@ -37,6 +40,7 @@ Future<void> init() async {
       sendMessage: sl(),
       getChatHistory: sl(),
       clearChatHistory: sl(),
+      updateChatHistory: sl(),
       modelService: sl(),
     ),
   );
@@ -45,10 +49,15 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SendMessage(sl()));
   sl.registerLazySingleton(() => GetChatHistory(sl()));
   sl.registerLazySingleton(() => ClearChatHistory(sl()));
+  sl.registerLazySingleton(() => UpdateChatHistory(sl()));
 
   // Repository
   sl.registerLazySingleton<ChatRepository>(
-    () => ChatRepositoryImpl(localDataSource: sl(), remoteDataSource: sl()),
+    () => ChatRepositoryImpl(
+      localDataSource: sl(),
+      remoteDataSource: sl(),
+      localModelService: sl(),
+    ),
   );
 
   // Data sources

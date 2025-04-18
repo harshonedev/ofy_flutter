@@ -47,10 +47,6 @@ class _MessageBubbleState extends State<MessageBubble>
     final colorScheme = Theme.of(context).colorScheme;
 
     // Enhanced Material 3 colors with dynamic opacity for depth effect
-    final messageBgColor =
-        isUserMessage
-            ? colorScheme.primaryContainer
-            : colorScheme.surfaceVariant.withOpacity(0.85);
 
     final messageTextColor =
         isUserMessage

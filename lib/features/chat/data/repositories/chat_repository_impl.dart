@@ -1,4 +1,7 @@
+import 'dart:ffi';
+
 import 'package:dartz/dartz.dart';
+import 'package:llm_cpp_chat_app/features/chat/domain/services/local_model_service_interface.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
@@ -11,10 +14,12 @@ import '../models/message_model.dart';
 class ChatRepositoryImpl implements ChatRepository {
   final LocalChatDataSource localDataSource;
   final RemoteChatDataSource remoteDataSource;
+  final LocalModelServiceInterface localModelService;
 
   ChatRepositoryImpl({
     required this.localDataSource,
     required this.remoteDataSource,
+    required this.localModelService,
   });
 
   @override
@@ -74,6 +79,27 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       final result = await localDataSource.clearCache();
       return Right(result);
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
+    }
+  }
+  
+  @override
+  Future<Either<Failure, bool>> updateChatHistory(Message message) async {
+    try {
+      // Get existing messages
+      final messageModel = MessageModel(
+        content: message.content,
+        role: message.role,
+      );
+      final existingMessages = await localDataSource.getCachedMessages();
+      final updatedMessages = List<MessageModel>.from(existingMessages)
+        ..add(messageModel);
+
+      // Cache the updated list with the new user message
+      final result = await localDataSource.cacheMessages(updatedMessages);
+      return Right(result);
+
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
     }

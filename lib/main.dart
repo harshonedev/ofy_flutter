@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
@@ -43,7 +44,7 @@ class MainApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.system,
-        home: const ModelPickerPage(),
+        home: const  ChatPage(),
       ),
     );
   }

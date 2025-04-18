@@ -11,7 +11,7 @@ abstract class LocalChatDataSource {
   Future<List<MessageModel>> getCachedMessages();
 
   /// Saves messages to local cache
-  Future<void> cacheMessages(List<MessageModel> messages);
+  Future<bool> cacheMessages(List<MessageModel> messages);
 
   /// Clears all cached messages
   Future<bool> clearCache();
@@ -35,13 +35,13 @@ class LocalChatDataSourceImpl implements LocalChatDataSource {
   }
 
   @override
-  Future<void> cacheMessages(List<MessageModel> messages) async {
+  Future<bool> cacheMessages(List<MessageModel> messages) async {
     final sharedPreferences = await SharedPreferences.getInstance();
 
     final jsonStringList =
         messages.map((message) => json.encode(message.toJson())).toList();
 
-    await sharedPreferences.setStringList(_cachedMessagesKey, jsonStringList);
+    return await sharedPreferences.setStringList(_cachedMessagesKey, jsonStringList);
   }
 
   @override

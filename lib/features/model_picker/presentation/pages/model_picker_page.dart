@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_event.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../../core/constants/app_constants.dart';
@@ -30,7 +31,7 @@ class ModelPickerPage extends StatelessWidget {
               state.saveSuccess == true &&
               state.modelPath != null) {
             // Initialize Chat BLoC with selected model path
-            context.read<ChatBloc>().initializeModelPath(state.modelPath!);
+            context.read<ChatBloc>().add(InitializeModelEvent(modelPath: state.modelPath!));
 
             // Navigate to chat page when model is successfully selected
             Navigator.of(context).pushReplacement(

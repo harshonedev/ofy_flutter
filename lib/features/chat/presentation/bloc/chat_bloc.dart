@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:llm_cpp_chat_app/features/chat/data/services/model_service_impl.dart';
+import 'package:llm_cpp_chat_app/features/chat/data/services/local_model_service_impl.dart';
+import 'package:llm_cpp_chat_app/features/chat/domain/usecases/update_chat_history.dart';
 
 import '../../../../core/constants/model_type.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/message.dart';
-import '../../domain/services/model_service_interface.dart';
+import '../../domain/services/local_model_service_interface.dart';
 import '../../domain/usecases/clear_chat_history.dart';
 import '../../domain/usecases/get_chat_history.dart';
 import '../../domain/usecases/send_message.dart';
@@ -16,7 +17,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final GetChatHistory getChatHistory;
   final SendMessage sendMessage;
   final ClearChatHistory clearChatHistory;
-  final ModelServiceInterface modelService;
+  final UpdateChatHistory updateChatHistory;
+  final LocalModelServiceInterface modelService;
 
   ModelType _currentModelType = ModelType.local;
   String? _modelPath;
@@ -26,6 +28,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     required this.getChatHistory,
     required this.sendMessage,
     required this.clearChatHistory,
+    required this.updateChatHistory,
     required this.modelService,
   }) : super(ChatInitial()) {
     on<GetChatHistoryEvent>(_onGetChatHistory);
@@ -35,6 +38,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<SwitchModelTypeEvent>(_onSwitchModelType);
     on<InitializeModelEvent>(_onInitializeModel);
     on<CompleteResponseEvent>(_onCompleteResponse);
+    on<SubscriptionErrorEvent>(_onSubscriptionError);
 
     // Subscribe to model responses
     _subscribeToModelResponses();
@@ -45,24 +49,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _modelResponseSubscription = modelService.responseStream.listen(
       (response) {
         // Check if this is the completion marker
-        if (response == ModelServiceImpl.completionMarker) {
+        if (response == LocalModelServiceImpl.completionMarker) {
           // Signal that the response is complete
           add(CompleteResponseEvent());
           return;
         }
-
         // Stream tokens as they come in
         add(MessageStreamingEvent(token: response));
       },
       onError: (error) {
-        emit(ChatError(message: error.toString()));
+        add(SubscriptionErrorEvent(error: error.toString()));
       },
     );
-  }
-
-  void initializeModelPath(String modelPath) {
-    _modelPath = modelPath;
-    add(InitializeModelEvent(modelPath: modelPath));
   }
 
   Future<void> _onInitializeModel(
@@ -71,23 +69,31 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     try {
       emit(ChatLoading());
+      _modelPath = event.modelPath;
       final success = await modelService.loadModel(event.modelPath);
 
       if (success) {
         final result = await getChatHistory(NoParams());
 
-        result.fold(
-          (failure) => emit(ChatError(message: failure.toString())),
-          (messages) => emit(
-            ChatLoaded(messages: messages, modelType: _currentModelType),
-          ),
-        );
+        result.fold((failure) => emit(ChatError(message: failure.toString())), (
+          messages,
+        ) {
+          emit(ChatLoaded(messages: messages, modelType: _currentModelType));
+          print('Messages - $messages');
+        });
       } else {
         emit(const ChatError(message: 'Failed to load model'));
       }
     } catch (e) {
       emit(ChatError(message: e.toString()));
     }
+  }
+
+  void _onSubscriptionError(
+    SubscriptionErrorEvent event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(ChatError(message: event.error));
   }
 
   Future<void> _onGetChatHistory(
@@ -119,6 +125,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       final updatedMessages = List<Message>.from(currentState.messages)
         ..add(userMessage);
+
+      await updateChatHistory(userMessage);
 
       emit(
         currentState.copyWith(messages: updatedMessages).clearCurrentResponse(),
@@ -209,7 +217,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   void _onCompleteResponse(
     CompleteResponseEvent event,
     Emitter<ChatState> emit,
-  ) {
+  ) async {
     // If we have a current response in the state, add it as a complete message
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
@@ -226,6 +234,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         final updatedMessages = List<Message>.from(currentState.messages)
           ..add(assistantMessage);
 
+        // Update the chat history
+        await updateChatHistory(assistantMessage);
         // Emit new state with the message added and current response cleared
         emit(
           currentState
