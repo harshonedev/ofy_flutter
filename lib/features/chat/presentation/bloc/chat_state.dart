@@ -18,11 +18,13 @@ class ChatLoaded extends ChatState {
   final List<Message> messages;
   final ModelType modelType;
   final String? currentResponse;
+  final bool? isChatFinished;
 
   const ChatLoaded({
     required this.messages,
     required this.modelType,
     this.currentResponse,
+    this.isChatFinished,
   });
 
   @override
@@ -32,11 +34,14 @@ class ChatLoaded extends ChatState {
     List<Message>? messages,
     ModelType? modelType,
     String? currentResponse,
+    bool? isChatFinished,
+
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
       modelType: modelType ?? this.modelType,
       currentResponse: currentResponse ?? this.currentResponse,
+      isChatFinished: isChatFinished ?? this.isChatFinished,
     );
   }
 

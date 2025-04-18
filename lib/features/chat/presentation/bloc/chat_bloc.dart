@@ -126,12 +126,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       final updatedMessages = List<Message>.from(currentState.messages)
         ..add(userMessage);
 
-      await updateChatHistory(userMessage);
-
-      emit(
-        currentState.copyWith(messages: updatedMessages).clearCurrentResponse(),
-      );
-
       if (_currentModelType == ModelType.local) {
         // Use local model inference
         try {
@@ -139,6 +133,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             emit(const ChatError(message: 'Model path not initialized'));
             return;
           }
+
+          await updateChatHistory(userMessage);
+
+          emit(
+            currentState
+                .copyWith(messages: updatedMessages, isChatFinished: false)
+                .clearCurrentResponse(),
+          );
 
           // Build prompt from conversation history
           final prompt = modelService.buildPrompt(updatedMessages);
@@ -239,7 +241,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         // Emit new state with the message added and current response cleared
         emit(
           currentState
-              .copyWith(messages: updatedMessages)
+              .copyWith(messages: updatedMessages, isChatFinished: true)
               .clearCurrentResponse(),
         );
       }

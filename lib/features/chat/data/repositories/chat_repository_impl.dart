@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:dartz/dartz.dart';
 import 'package:llm_cpp_chat_app/features/chat/domain/services/local_model_service_interface.dart';
 
