@@ -7,11 +7,9 @@ class Message extends Equatable {
   final MessageRole role;
   final DateTime timestamp;
 
-  Message({
-    required this.content,
-    required this.role,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
+  Message({required this.content, required this.role, DateTime? timestamp})
+    : timestamp = timestamp ?? DateTime.now();
+
 
   @override
   List<Object> get props => [content, role, timestamp];

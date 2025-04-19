@@ -1,3 +1,1 @@
-enum ModelType { 
-  local, openAi, ai4Chat, claude, custom 
-  }
+enum ModelType { local, openAi, ai4Chat, claude }

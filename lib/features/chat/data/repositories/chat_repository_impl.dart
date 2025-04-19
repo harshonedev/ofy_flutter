@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:dartz/dartz.dart';
 import 'package:llm_cpp_chat_app/core/constants/model_type.dart';
 import 'package:llm_cpp_chat_app/features/chat/domain/services/local_model_service_interface.dart';
@@ -29,7 +27,7 @@ class ChatRepositoryImpl implements ChatRepository {
       final localMessages = await localDataSource.getCachedMessages();
       return Right(localMessages);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -50,38 +48,34 @@ class ChatRepositoryImpl implements ChatRepository {
       final updatedMessages = List<MessageModel>.from(existingMessages)
         ..add(userMessage);
 
-      // Cache the updated list with the new user message
       await localDataSource.cacheMessages(updatedMessages);
 
       try {
         // Get AI response
-        final jsonStringContent =
-            updatedMessages
-                .map((message) => json.encode(message.toJson()))
-                .toList()
-                .toString();
+        final userMessagesForApi =
+            updatedMessages.map((message) => message.toApiMessageParams()).toList();
         MessageModel response;
         if (modelType == ModelType.ai4Chat) {
           response = await remoteDataSource.getAi4ChatResponse(
-            jsonStringContent,
+            userMessagesForApi,
             apiKey,
             modelName,
           );
         } else if (modelType == ModelType.claude) {
           response = await remoteDataSource.getClaudeResponse(
-            jsonStringContent,
+            userMessagesForApi,
             apiKey,
             modelName,
           );
         } else if (modelType == ModelType.openAi) {
           response = await remoteDataSource.getOpenAIResponse(
-            jsonStringContent,
+            userMessagesForApi,
             apiKey,
             modelName,
           );
         } else {
           return Left(
-            ModelResponseFailure(message: 'Unsupported model type: $modelType'),
+            ModelResponseFailure('Unsupported model type: $modelType'),
           );
         }
 
@@ -93,12 +87,12 @@ class ChatRepositoryImpl implements ChatRepository {
         // Return the AI response
         return Right(response);
       } on ServerException catch (e) {
-        return Left(ServerFailure(message: e.message));
+        return Left(ServerFailure(e.message));
       } on ModelLoadException catch (e) {
-        return Left(ModelLoadFailure(message: e.message));
+        return Left(ModelLoadFailure(e.message));
       }
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -108,7 +102,7 @@ class ChatRepositoryImpl implements ChatRepository {
       final result = await localDataSource.clearCache();
       return Right(result);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -128,7 +122,7 @@ class ChatRepositoryImpl implements ChatRepository {
       final result = await localDataSource.cacheMessages(updatedMessages);
       return Right(result);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 }

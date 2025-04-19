@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/core/constants/model_type.dart';
+import 'package:llm_cpp_chat_app/core/error/failures.dart';
 
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/usecases/get_api_key.dart';
@@ -39,60 +40,30 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     GetSettingsEvent event,
     Emitter<SettingsState> emit,
   ) async {
-    emit(SettingsLoading());
-
+    print("GetSettingsEvent called");
     final modelTypeResult = await getModelTypePreference(NoParams());
 
-    modelTypeResult.fold(
-      (failure) => emit(SettingsError(message: failure.toString())),
-      (modelType) {
-        // Start with basic state
-        var settingsState = SettingsLoaded(modelType: modelType);
-
-      emit(settingsState);
-        // Then load all API keys and model names for each model type
-        //_loadModelSpecificSettings(settingsState, emit);
-      },
-    );
-  }
-
-  void _loadModelSpecificSettings(
-    SettingsLoaded initialState,
-    Emitter<SettingsState> emit,
-  ) async {
-    // Use the modelTypes from the enum to fetch all settings
-    const modelTypes = ModelType.values;
-    var currentState = initialState;
-
-    for (var modelType in modelTypes) {
-      // Get API key for this model type
-      final apiKeyResult = await getApiKey(
-        GetApiKeyParams(modelType: modelType),
+    if (modelTypeResult.isLeft()) {
+      emit(
+        SettingsError(
+          message:
+              modelTypeResult
+                  .swap()
+                  .getOrElse(() => const UnknownFailure("Unknown error"))
+                  .message,
+        ),
       );
-      apiKeyResult.fold(
-        (failure) {
-          /* ignore failure, just don't update state */
-        },
-        (apiKey) {
-          currentState = currentState.updateApiKey(modelType, apiKey);
-        },
-      );
-
-      // Get model name for this model type
-      final modelNameResult = await getModelName(
-        GetModelNameParams(modelType: modelType),
-      );
-      modelNameResult.fold(
-        (failure) {
-          /* ignore failure, just don't update state */
-        },
-        (modelName) {
-          currentState = currentState.updateModelName(modelType, modelName);
-        },
-      );
+      return;
     }
-
-    emit(currentState);
+    final modelType = modelTypeResult.getOrElse(() => ModelType.local);
+    emit(SettingsLoaded(modelType: modelType));
+    print("Model type: $modelType");
+    // CHECK IF THE MODEL TYPE IS NOT LOCAL
+    if (modelType != ModelType.local) {
+      // fetch api key and model name
+      add(GetApiKeyEvent(modelType: modelType));
+      add(GetModelNameEvent(modelType: modelType));
+    }
   }
 
   Future<void> _onSaveModelType(
@@ -101,20 +72,37 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     if (state is SettingsLoaded) {
       final currentState = state as SettingsLoaded;
-      emit(SettingsLoading());
 
       final params = SaveModelTypeParams(modelType: event.modelType);
       final result = await saveModelTypePreference(params);
 
-      result.fold(
-        (failure) => emit(SettingsError(message: failure.toString())),
-        (success) => emit(
-          currentState.copyWith(
-            modelType: event.modelType,
-            saveSuccess: success,
+      if (result.isLeft()) {
+        emit(
+          SettingsError(
+            message:
+                result
+                    .swap()
+                    .getOrElse(() => const UnknownFailure("Unknown error"))
+                    .message,
           ),
-        ),
-      );
+        );
+        return;
+      }
+      if (result.getOrElse(() => false)) {
+        emit(
+          currentState.copyWith(modelType: event.modelType, saveSuccess: false),
+        );
+
+        if (event.modelType != ModelType.local) {
+          // fetch api key and model name
+          add(GetApiKeyEvent(modelType: event.modelType));
+          add(GetModelNameEvent(modelType: event.modelType));
+        }
+      } else {
+        emit(
+          const SettingsError(message: 'Failed to save model type preference'),
+        );
+      }
     }
   }
 
@@ -141,7 +129,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     if (state is SettingsLoaded) {
       final currentState = state as SettingsLoaded;
-      emit(SettingsLoading());
 
       final params = SaveApiKeyParams(
         apiKey: event.apiKey,
@@ -184,7 +171,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     if (state is SettingsLoaded) {
       final currentState = state as SettingsLoaded;
-      emit(SettingsLoading());
 
       final params = SaveModelNameParams(
         modelName: event.modelName,

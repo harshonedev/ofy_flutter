@@ -1,55 +1,44 @@
 import 'package:equatable/equatable.dart';
 
 abstract class Failure extends Equatable {
-  final List<dynamic> properties;
+  final String message;
 
-  const Failure([this.properties = const <dynamic>[]]);
+  const Failure(this.message); 
 
   @override
-  List<dynamic> get props => properties;
+  List<dynamic> get props => [message];
 }
 
 // General failures
 class ServerFailure extends Failure {
-  final String message;
+ 
+  const ServerFailure(super.message);
 
-  const ServerFailure({this.message = 'Server Failure'});
-
-  @override
-  List<dynamic> get props => [message];
 }
 
 class ModelResponseFailure extends Failure {
-  final String message;
-
-  const ModelResponseFailure({this.message = 'Model Response Failure'});
-
-  @override
-  List<dynamic> get props => [message];
+  const ModelResponseFailure(super.message);
 }
 
 class CacheFailure extends Failure {
-  final String message;
 
-  const CacheFailure({this.message = 'Cache Failure'});
+  const CacheFailure(super.message);
 
-  @override
-  List<dynamic> get props => [message];
+}
+
+class UnknownFailure extends Failure {
+
+  const UnknownFailure(super.message);
+
 }
 
 // Feature specific failures
 class ModelLoadFailure extends Failure {
-  final String message;
 
-  const ModelLoadFailure({this.message = 'Failed to load model'});
-
-  @override
-  List<dynamic> get props => [message];
+  const ModelLoadFailure(super.message);
 }
 
 class NoConnectionFailure extends Failure {
-  const NoConnectionFailure();
+  const NoConnectionFailure(super.message);
 
-  @override
-  List<dynamic> get props => ['No Internet Connection'];
 }

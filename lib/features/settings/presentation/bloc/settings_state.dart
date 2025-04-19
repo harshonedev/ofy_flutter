@@ -10,8 +10,6 @@ abstract class SettingsState extends Equatable {
 
 class SettingsInitial extends SettingsState {}
 
-class SettingsLoading extends SettingsState {}
-
 class SettingsLoaded extends SettingsState {
   final ModelType modelType;
   final Map<ModelType, String?> apiKeys;
@@ -55,6 +53,15 @@ class SettingsLoaded extends SettingsState {
     final newModelNames = Map<ModelType, String?>.from(modelNames);
     newModelNames[type] = modelName;
     return copyWith(modelNames: newModelNames);
+  }
+
+  static SettingsLoaded empty() {
+    return const SettingsLoaded(
+      modelType: ModelType.local,
+      apiKeys: {},
+      modelNames: {},
+      saveSuccess: null,
+    );
   }
 }
 

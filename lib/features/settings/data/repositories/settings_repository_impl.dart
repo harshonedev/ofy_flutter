@@ -17,7 +17,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       final modelType = await localDataSource.getModelTypePreference();
       return Right(modelType);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -29,7 +29,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       final result = await localDataSource.saveModelTypePreference(modelType);
       return Right(result);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -39,7 +39,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       final apiKey = await localDataSource.getApiKey(modelType);
       return Right(apiKey);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -52,7 +52,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       final result = await localDataSource.saveApiKey(apiKey, modelType);
       return Right(result);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -62,7 +62,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       final modelName = await localDataSource.getModelName(modelType);
       return Right(modelName);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -75,7 +75,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       final result = await localDataSource.saveModelName(modelName, modelType);
       return Right(result);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 }

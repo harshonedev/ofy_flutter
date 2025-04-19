@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:llm_cpp_chat_app/core/constants/model_type.dart';
 
 abstract class ChatEvent extends Equatable {
   const ChatEvent();
@@ -31,12 +32,14 @@ class MessageStreamingEvent extends ChatEvent {
 class ClearChatEvent extends ChatEvent {}
 
 class SwitchModelTypeEvent extends ChatEvent {
-  final bool useLocalModel;
+  final ModelType modelType;
+  final String? modelApiKey;
+  final String? modelName;
 
-  const SwitchModelTypeEvent({required this.useLocalModel});
+  const SwitchModelTypeEvent({required this.modelType, this.modelApiKey, this.modelName});
 
   @override
-  List<Object?> get props => [useLocalModel];
+  List<Object?> get props => [modelType, modelApiKey, modelName];
 }
 
 class InitializeModelEvent extends ChatEvent {

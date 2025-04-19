@@ -23,7 +23,7 @@ class AppConstants {
   static const String openAiBaseUrl =
       'https://api.openai.com/v1/chat/completions';
   static const String ai4ChatBaseUrl =
-      'https://api.ai4chat.com/v1/chat/completions';
+      'https://app.ai4chat.co/api/v1/chat/completions';
   static const String claudeaiBaseUrl = 'https://api.anthropic.com/v1/messages';
 
   // Settings
@@ -32,7 +32,8 @@ class AppConstants {
   static const String localModelSettingsTitle = 'Local Model Settings';
   static const String apiKeyHint = 'Enter your OpenAI API key';
   static const String saveButtonText = 'Save';
-  static const String apiKeySavedMessage = 'API key saved successfully';
+  static const String apiKeySavedMessage =
+      'Model credentials saved successfully';
   static const String apiKeyErrorMessage = 'Please enter a valid API key';
 
   // Model Selection

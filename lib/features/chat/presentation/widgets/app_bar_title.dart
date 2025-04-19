@@ -34,18 +34,17 @@ class AppBarTitle extends StatelessWidget {
           ),
         ),
         // Add spacing before badges
-        if (modelType == ModelType.openAi ||
-            (modelType == ModelType.local && isReady))
-          const SizedBox(width: 8),
+        const SizedBox(width: 8),
         // Badges (conditionally shown)
-        if (modelType == ModelType.openAi) _buildOpenAiBadge(colorScheme),
         if (modelType == ModelType.local && isReady)
           _buildLocalModelBadge(colorScheme),
+        if (modelType != ModelType.local)
+          _buildRemoteModelBadge(colorScheme, modelType),
       ],
     );
   }
 
-  Widget _buildOpenAiBadge(ColorScheme colorScheme) {
+  Widget _buildRemoteModelBadge(ColorScheme colorScheme, ModelType modelType) {
     return Container(
       margin: const EdgeInsets.only(left: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -63,7 +62,7 @@ class AppBarTitle extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            'OpenAI',
+            modelType.name,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,

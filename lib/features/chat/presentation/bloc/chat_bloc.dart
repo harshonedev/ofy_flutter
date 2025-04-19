@@ -22,6 +22,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
   ModelType _currentModelType = ModelType.local;
   String? _modelPath;
+  String? _currentModelAPIKey;
+  String? _currentModelName;
   StreamSubscription? _modelResponseSubscription;
 
   ChatBloc({
@@ -69,23 +71,26 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     try {
       emit(ChatLoading());
+
       _modelPath = event.modelPath;
       final success = await modelService.loadModel(event.modelPath);
 
       if (success) {
         final result = await getChatHistory(NoParams());
 
-        result.fold((failure) => emit(ChatError(message: failure.toString())), (
-          messages,
-        ) {
-          emit(ChatLoaded(messages: messages, modelType: _currentModelType));
-          print('Messages - $messages');
-        });
+        result.fold(
+          (failure) =>
+              emit(ChatError(message: failure.toString(), messages: const [])),
+          (messages) {
+            emit(ChatLoaded(messages: messages, modelType: _currentModelType));
+            print('Messages - $messages');
+          },
+        );
       } else {
-        emit(const ChatError(message: 'Failed to load model'));
+        emit(const ChatError(message: 'Failed to load model', messages: []));
       }
     } catch (e) {
-      emit(ChatError(message: e.toString()));
+      emit(ChatError(message: e.toString(), messages: const []));
     }
   }
 
@@ -104,7 +109,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final result = await getChatHistory(NoParams());
 
     result.fold(
-      (failure) => emit(ChatError(message: failure.toString())),
+      (failure) =>
+          emit(ChatError(message: failure.toString(), messages: const [])),
       (messages) =>
           emit(ChatLoaded(messages: messages, modelType: _currentModelType)),
     );
@@ -130,11 +136,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         // Use local model inference
         try {
           if (_modelPath == null) {
-            emit(const ChatError(message: 'Model path not initialized'));
+            emit(
+              ChatError(
+                message: 'Model path not initialized',
+                messages: currentState.messages,
+              ),
+            );
             return;
           }
-
-          await updateChatHistory(userMessage);
 
           emit(
             currentState
@@ -150,32 +159,73 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
           // The streaming responses will be handled by the subscription
         } catch (e) {
-          emit(ChatError(message: 'Error processing message: ${e.toString()}'));
+          emit(
+            ChatError(
+              message: 'Error processing message: ${e.toString()}',
+              messages: currentState.messages,
+            ),
+          );
         }
       } else {
         // Use remote API (OpenAI, etc.)
-        // final params = SendMessageParams(
-        //   content: event.message,
-        //   modelPath: event.modelPath ?? _modelPath,
-        // );
+        if (_currentModelAPIKey == null || _currentModelAPIKey!.isEmpty) {
+          emit(
+            ChatError(
+              message: 'API key not initialized',
+              messages: currentState.messages,
+            ),
+          );
+          return;
+        }
+        if (_currentModelName == null || _currentModelName!.isEmpty) {
+          emit(
+            ChatError(
+              message: 'Model name not initialized',
+              messages: currentState.messages,
+            ),
+          );
+          return;
+        }
 
-        // final result = await sendMessage(params);
+        await updateChatHistory(userMessage);
 
-        // result.fold((failure) => emit(ChatError(message: failure.toString())), (
-        //   assistantMessage,
-        // ) {
-        //   if (state is ChatLoaded) {
-        //     final latestState = state as ChatLoaded;
-        //     final finalMessages = List<Message>.from(latestState.messages)
-        //       ..add(assistantMessage);
+        emit(
+          currentState
+              .copyWith(messages: updatedMessages, isChatFinished: false)
+              .clearCurrentResponse(),
+        );
 
-        //     emit(
-        //       latestState
-        //           .copyWith(messages: finalMessages)
-        //           .clearCurrentResponse(),
-        //     );
-        //   }
-        // });
+        final params = SendMessageParams(
+          content: event.message,
+          modelType: _currentModelType,
+          modelName: _currentModelName!,
+          apiKey: _currentModelAPIKey!,
+        );
+        print('Params - $params');
+
+        final result = await sendMessage(params);
+
+        result.fold(
+          (failure) => emit(
+            ChatError(
+              message: failure.message,
+              messages: currentState.messages,
+            ),
+          ),
+          (assistantMessage) {
+            if (state is ChatLoaded) {
+              final latestState = state as ChatLoaded;
+              final finalMessages = List<Message>.from(latestState.messages)
+                ..add(assistantMessage);
+
+              emit(
+                latestState
+                    .copyWith(messages: finalMessages)
+                    .clearCurrentResponse(),
+              );
+            }
+          },
+        );
       }
     }
   }
@@ -199,14 +249,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final result = await clearChatHistory(NoParams());
 
     result.fold(
-      (failure) => emit(ChatError(message: failure.toString())),
+      (failure) =>
+          emit(ChatError(message: failure.toString(), messages: const [])),
       (_) => emit(ChatLoaded(messages: const [], modelType: _currentModelType)),
     );
   }
 
   void _onSwitchModelType(SwitchModelTypeEvent event, Emitter<ChatState> emit) {
-    _currentModelType =
-        event.useLocalModel ? ModelType.local : ModelType.openAi;
+    _currentModelType = event.modelType;
+    _currentModelAPIKey = event.modelApiKey;
+    _currentModelName = event.modelName;
 
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;

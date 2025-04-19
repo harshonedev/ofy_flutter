@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
+import 'package:llm_cpp_chat_app/features/settings/presentation/bloc/settings_event.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/model_picker/presentation/bloc/model_picker_bloc.dart';
 import 'features/model_picker/presentation/bloc/model_picker_event.dart';
-import 'features/model_picker/presentation/pages/model_picker_page.dart';
 import 'features/settings/presentation/bloc/settings_bloc.dart';
 
 void main() async {
@@ -28,7 +28,9 @@ class MainApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => di.sl<ChatBloc>()),
-        BlocProvider(create: (_) => di.sl<SettingsBloc>()),
+        BlocProvider(
+          create: (context) => di.sl<SettingsBloc>()..add(GetSettingsEvent()),
+        ),
         BlocProvider(
           create: (context) {
             final bloc = di.sl<ModelPickerBloc>();
@@ -44,7 +46,7 @@ class MainApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.system,
-        home: const  ChatPage(),
+        home: const ChatPage(),
       ),
     );
   }

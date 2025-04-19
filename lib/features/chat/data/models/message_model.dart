@@ -1,3 +1,5 @@
+import 'package:llm_cpp_chat_app/features/chat/data/datasources/remote_chat_datasource.dart';
+
 import '../../domain/entities/message.dart';
 
 class MessageModel extends Message {
@@ -15,11 +17,29 @@ class MessageModel extends Message {
     );
   }
 
+
+ 
+
+  ApiMessageParams toApiMessageParams() {
+    return ApiMessageParams(
+      content: content,
+      role: _roleToString(role),
+    );
+  }
+
+
   Map<String, dynamic> toJson() {
     return {
       'content': content,
       'role': _roleToString(role),
       'timestamp': timestamp.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> toJsonForApi() {
+    return {
+      'content': content,
+      'role': _roleToString(role),
     };
   }
 

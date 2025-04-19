@@ -16,7 +16,7 @@ class ModelPickerRepositoryImpl implements ModelPickerRepository {
       final modelPath = await localDataSource.getModelPath();
       return Right(modelPath);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 
@@ -26,7 +26,7 @@ class ModelPickerRepositoryImpl implements ModelPickerRepository {
       final result = await localDataSource.saveModelPath(modelPath);
       return Right(result);
     } on CacheException catch (e) {
-      return Left(CacheFailure(message: e.message));
+      return Left(CacheFailure(e.message));
     }
   }
 }

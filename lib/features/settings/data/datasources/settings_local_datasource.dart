@@ -113,8 +113,6 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
         return 'claude';
       case ModelType.ai4Chat:
         return 'ai4chat';
-      case ModelType.custom:
-        return 'custom';
     }
   }
 
@@ -128,8 +126,6 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
         return ModelType.claude;
       case 'ai4chat':
         return ModelType.ai4Chat;
-      case 'custom':
-        return ModelType.custom;
       default:
         return ModelType.local;
     }

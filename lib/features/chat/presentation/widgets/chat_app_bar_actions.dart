@@ -27,7 +27,7 @@ class ChatAppBarActions extends StatelessWidget {
         if (modelType == ModelType.local)
           IconButton(
             icon: const Icon(Icons.folder_open_rounded),
-            tooltip: 'Change Local Model',
+            tooltip: 'Configure Local Model',
             style: IconButton.styleFrom(
               foregroundColor: colorScheme.onSurfaceVariant,
               padding: const EdgeInsets.all(10),

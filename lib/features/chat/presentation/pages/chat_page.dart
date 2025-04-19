@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_bloc.dart';
 import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_state.dart';
+import 'package:llm_cpp_chat_app/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:llm_cpp_chat_app/features/settings/presentation/bloc/settings_state.dart';
 import '../../../../core/constants/model_type.dart';
 import '../../../model_picker/presentation/pages/model_picker_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
@@ -84,11 +86,6 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _selectLocalModel() {
-    // This might need adjustment based on how model switching is intended
-    // Currently, it navigates away. If it should just switch type, update ChatBloc.
-    context.read<ChatBloc>().add(
-      const SwitchModelTypeEvent(useLocalModel: true),
-    );
     _changeLocalModel(); // Navigate to picker
   }
 
@@ -107,26 +104,54 @@ class _ChatPageState extends State<ChatPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
-    return BlocListener<ModelPickerBloc, ModelPickerState>(
-      listener: (context, state) {
-        if (state is ModelPickerLoaded && state.modelPath != null) {
-          // Update the model path in the chat bloc
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ModelPickerBloc, ModelPickerState>(
+          listener: (context, state) {
+            if (state is ModelPickerLoaded && state.modelPath != null) {
+              // Update the model path in the chat bloc
 
-          context.read<ChatBloc>().add(
-            InitializeModelEvent(modelPath: state.modelPath!),
-          );
-        }
-        if (state is ModelPickerError) {
-          // Handle error state
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${state.message}'),
-              backgroundColor: colorScheme.error,
-            ),
-          );
-          // Potentially navigate back or show error in ChatBloc
-        }
-      },
+              context.read<ChatBloc>().add(
+                InitializeModelEvent(modelPath: state.modelPath!),
+              );
+            }
+            if (state is ModelPickerError) {
+              // Handle error state
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: ${state.message}'),
+                  backgroundColor: colorScheme.error,
+                ),
+              );
+              // Potentially navigate back or show error in ChatBloc
+            }
+          },
+        ),
+
+        BlocListener<SettingsBloc, SettingsState>(
+          listener: (context, state) {
+            if (state is SettingsLoaded) {
+              // Update settings in the chat bloc if needed
+              context.read<ChatBloc>().add(
+                SwitchModelTypeEvent(
+                  modelType: state.modelType,
+                  modelApiKey: state.getApiKey(state.modelType),
+                  modelName: state.getModelName(state.modelType),
+                ),
+              );
+            }
+            if (state is SettingsError) {
+              // Handle error state
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: ${state.message}'),
+                  backgroundColor: colorScheme.error,
+                ),
+              );
+            }
+          },
+        ),
+      ],
       child: BlocBuilder<ChatBloc, ChatState>(
         builder: (context, state) {
           bool isReady = false;
@@ -155,6 +180,7 @@ class _ChatPageState extends State<ChatPage> {
             // This requires ChatError state to potentially hold previous messages
             // For simplicity now, we just show the error message.
             isReady = true; // Consider the UI ready to show the error
+            messages = state.messages ?? [];
             errorMessage = state.message;
           } else if (state is ChatLoading) {
             isReady = true;
