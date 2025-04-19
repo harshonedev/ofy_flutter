@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
-import '../../../../core/constants/model_type.dart';
+import 'package:llm_cpp_chat_app/core/constants/app_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../models/message_model.dart';
 import '../../domain/entities/message.dart';
@@ -10,69 +9,49 @@ abstract class RemoteChatDataSource {
   /// Calls the API endpoint to get a response for a user message
   ///
   /// Throws a [ServerException] for all error codes
-  Future<MessageModel> getAIResponse(
-    String userMessage, {
-    ModelType modelType = ModelType.openAi,
-    String? apiKey,
-    String? modelPath,
-  });
+  Future<MessageModel> getOpenAIResponse(
+    String userMessage,
+    String apiKey,
+    String modelName,
+  );
+
+  Future<MessageModel> getAi4ChatResponse(
+    String userMessage,
+    String apiKey,
+    String modelName,
+  );
+
+  Future<MessageModel> getClaudeResponse(
+    String userMessage,
+    String apiKey,
+    String modelName,
+  );
 }
 
 class RemoteChatDataSourceImpl implements RemoteChatDataSource {
   final http.Client client;
 
-  RemoteChatDataSourceImpl({http.Client? client})
-    : client = client ?? http.Client();
+  RemoteChatDataSourceImpl({required this.client});
 
   @override
-  Future<MessageModel> getAIResponse(
-    String userMessage, {
-    ModelType modelType = ModelType.openAi,
-    String? apiKey,
-    String? modelPath,
-  }) async {
-    if (modelType == ModelType.openAi) {
-      if (apiKey == null || apiKey.isEmpty) {
-        throw ServerException(message: 'API key is required for OpenAI');
-      }
-      return _getOpenAIResponse(userMessage, apiKey);
-    } else if (modelType == ModelType.local) {
-      if (modelPath == null || modelPath.isEmpty) {
-        throw ModelLoadException(
-          message: 'Model path is required for local inference',
-        );
-      }
-      return _getLocalModelResponse(userMessage, modelPath);
-    } else {
-      throw ServerException(message: 'Unsupported model type');
-    }
-  }
-
-  Future<MessageModel> _getOpenAIResponse(
+  Future<MessageModel> getAi4ChatResponse(
     String userMessage,
     String apiKey,
+    String modelName,
   ) async {
-    final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
-
+    final uri = Uri.parse(AppConstants.ai4ChatBaseUrl);
     final response = await client.post(
       uri,
       headers: {
         'Authorization': 'Bearer $apiKey',
         'Content-Type': 'application/json',
       },
-      body: json.encode({
-        'model': 'gpt-3.5-turbo',
-        'messages': [
-          {'role': 'user', 'content': userMessage},
-        ],
-        'temperature': 0.7,
-      }),
+      body: json.encode({'model': modelName, 'message': userMessage}),
     );
 
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
-      final content = jsonResponse['choices'][0]['message']['content'];
-
+      final content = jsonResponse['choices'][0]['message']['content'] ?? '';
       return MessageModel(content: content, role: MessageRole.assistant);
     } else {
       throw ServerException(
@@ -81,24 +60,61 @@ class RemoteChatDataSourceImpl implements RemoteChatDataSource {
     }
   }
 
-  Future<MessageModel> _getLocalModelResponse(
+  @override
+  Future<MessageModel> getClaudeResponse(
     String userMessage,
-    String modelPath,
+    String apiKey,
+    String modelName,
   ) async {
-    // This would be implemented using lcpp package for local model inference
-    // For now, we'll return a placeholder response
-    try {
-      // Simulating a delay for model inference
-      await Future.delayed(const Duration(seconds: 1));
+    final uri = Uri.parse(AppConstants.claudeaiBaseUrl);
+    final response = await client.post(
+      uri,
+      headers: {
+        'x-api-key': apiKey,
+        'content-type': 'application/json',
+        'anthropic-version': '2023-06-01',
+      },
+      body: json.encode({
+        'model': modelName,
+        'max-tokens': 1024,
+        'message': userMessage,
+      }),
+    );
 
-      return MessageModel(
-        content:
-            'This is a placeholder for local model response. Implement actual LCPP inference here.',
-        role: MessageRole.assistant,
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      final content = jsonResponse['content'][0]['text'] ?? '';
+      return MessageModel(content: content, role: MessageRole.assistant);
+    } else {
+      throw ServerException(
+        message: 'Error ${response.statusCode}: ${response.body}',
       );
-    } catch (e) {
-      throw ModelLoadException(
-        message: 'Failed to get response from local model: ${e.toString()}',
+    }
+  }
+
+  @override
+  Future<MessageModel> getOpenAIResponse(
+    String userMessage,
+    String apiKey,
+    String modelName,
+  ) async {
+    final uri = Uri.parse(AppConstants.openAiBaseUrl);
+    final response = await client.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'model': modelName, 'message': userMessage}),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      final content = jsonResponse['choices'][0]['message']['content'] ?? '';
+      return MessageModel(content: content, role: MessageRole.assistant);
+    } else {
+      throw ServerException(
+        message: 'Error ${response.statusCode}: ${response.body}',
       );
     }
   }

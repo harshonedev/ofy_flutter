@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:dartz/dartz.dart';
+import 'package:llm_cpp_chat_app/core/constants/model_type.dart';
 import 'package:llm_cpp_chat_app/features/chat/domain/services/local_model_service_interface.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -33,9 +36,11 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<Either<Failure, Message>> sendMessage(
     String content,
-    MessageRole role, {
-    String? modelPath,
-  }) async {
+    MessageRole role,
+    String modelName,
+    String apiKey,
+    ModelType modelType,
+  ) async {
     try {
       // First, cache the user message
       final userMessage = MessageModel(content: content, role: role);
@@ -50,10 +55,35 @@ class ChatRepositoryImpl implements ChatRepository {
 
       try {
         // Get AI response
-        final response = await remoteDataSource.getAIResponse(
-          content,
-          modelPath: modelPath,
-        );
+        final jsonStringContent =
+            updatedMessages
+                .map((message) => json.encode(message.toJson()))
+                .toList()
+                .toString();
+        MessageModel response;
+        if (modelType == ModelType.ai4Chat) {
+          response = await remoteDataSource.getAi4ChatResponse(
+            jsonStringContent,
+            apiKey,
+            modelName,
+          );
+        } else if (modelType == ModelType.claude) {
+          response = await remoteDataSource.getClaudeResponse(
+            jsonStringContent,
+            apiKey,
+            modelName,
+          );
+        } else if (modelType == ModelType.openAi) {
+          response = await remoteDataSource.getOpenAIResponse(
+            jsonStringContent,
+            apiKey,
+            modelName,
+          );
+        } else {
+          return Left(
+            ModelResponseFailure(message: 'Unsupported model type: $modelType'),
+          );
+        }
 
         // Add AI response to chat history and cache
         final finalMessages = List<MessageModel>.from(updatedMessages)
@@ -81,7 +111,7 @@ class ChatRepositoryImpl implements ChatRepository {
       return Left(CacheFailure(message: e.message));
     }
   }
-  
+
   @override
   Future<Either<Failure, bool>> updateChatHistory(Message message) async {
     try {
@@ -97,7 +127,6 @@ class ChatRepositoryImpl implements ChatRepository {
       // Cache the updated list with the new user message
       final result = await localDataSource.cacheMessages(updatedMessages);
       return Right(result);
-
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
     }

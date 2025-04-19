@@ -19,6 +19,15 @@ class ServerFailure extends Failure {
   List<dynamic> get props => [message];
 }
 
+class ModelResponseFailure extends Failure {
+  final String message;
+
+  const ModelResponseFailure({this.message = 'Model Response Failure'});
+
+  @override
+  List<dynamic> get props => [message];
+}
+
 class CacheFailure extends Failure {
   final String message;
 

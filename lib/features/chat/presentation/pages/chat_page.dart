@@ -77,7 +77,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _changeLocalModel() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ModelPickerPage()),
     );

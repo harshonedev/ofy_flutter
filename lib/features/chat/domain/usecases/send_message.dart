@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:llm_cpp_chat_app/core/constants/model_type.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -16,7 +17,10 @@ class SendMessage implements UseCase<Message, SendMessageParams> {
     return await repository.sendMessage(
       params.content,
       params.role,
-      modelPath: params.modelPath,
+      params.modelName,
+      params. apiKey,
+      params.modelType,
+
     );
   }
 }
@@ -24,14 +28,18 @@ class SendMessage implements UseCase<Message, SendMessageParams> {
 class SendMessageParams extends Equatable {
   final String content;
   final MessageRole role;
-  final String? modelPath;
+  final String modelName;
+  final ModelType modelType;
+  final String apiKey;
 
   const SendMessageParams({
     required this.content,
     this.role = MessageRole.user,
-    this.modelPath,
+    required this.modelName,
+    required this.apiKey,
+    required this.modelType,
   });
 
   @override
-  List<Object?> get props => [content, role, modelPath];
+  List<Object?> get props => [content, role, modelName];
 }

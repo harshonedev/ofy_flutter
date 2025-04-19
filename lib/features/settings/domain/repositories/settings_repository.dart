@@ -6,6 +6,11 @@ import '../../../../core/error/failures.dart';
 abstract class SettingsRepository {
   Future<Either<Failure, ModelType>> getModelTypePreference();
   Future<Either<Failure, bool>> saveModelTypePreference(ModelType modelType);
-  Future<Either<Failure, String?>> getApiKey();
-  Future<Either<Failure, bool>> saveApiKey(String apiKey);
+  Future<Either<Failure, String?>> getApiKey(ModelType modelType);
+  Future<Either<Failure, bool>> saveApiKey(String apiKey, ModelType modelType);
+  Future<Either<Failure, String?>> getModelName(ModelType modelType);
+  Future<Either<Failure, bool>> saveModelName(
+    String modelName,
+    ModelType modelType,
+  );
 }

@@ -15,17 +15,30 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final TextEditingController _apiKeyController = TextEditingController();
+  final Map<ModelType, TextEditingController> _apiKeyControllers = {};
+  final Map<ModelType, TextEditingController> _modelNameControllers = {};
 
   @override
   void initState() {
     super.initState();
+    // Initialize controllers for each model type
+    for (var modelType in ModelType.values) {
+      _apiKeyControllers[modelType] = TextEditingController();
+      _modelNameControllers[modelType] = TextEditingController();
+    }
+
     context.read<SettingsBloc>().add(GetSettingsEvent());
   }
 
   @override
   void dispose() {
-    _apiKeyController.dispose();
+    // Dispose all controllers
+    for (var controller in _apiKeyControllers.values) {
+      controller.dispose();
+    }
+    for (var controller in _modelNameControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -43,8 +56,19 @@ class _SettingsPageState extends State<SettingsPage> {
       body: BlocConsumer<SettingsBloc, SettingsState>(
         listener: (context, state) {
           if (state is SettingsLoaded) {
-            if (state.apiKey != null && _apiKeyController.text.isEmpty) {
-              _apiKeyController.text = state.apiKey!;
+            // Update controllers with values from state
+            for (var modelType in ModelType.values) {
+              final apiKey = state.getApiKey(modelType);
+              if (apiKey != null &&
+                  _apiKeyControllers[modelType]!.text.isEmpty) {
+                _apiKeyControllers[modelType]!.text = apiKey;
+              }
+
+              final modelName = state.getModelName(modelType);
+              if (modelName != null &&
+                  _modelNameControllers[modelType]!.text.isEmpty) {
+                _modelNameControllers[modelType]!.text = modelName;
+              }
             }
 
             if (state.saveSuccess == true) {
@@ -149,104 +173,92 @@ class _SettingsPageState extends State<SettingsPage> {
                             value: ModelType.openAi,
                             groupValue: state.modelType,
                           ),
+                          const SizedBox(height: 8),
+                          _buildModelTypeOption(
+                            context,
+                            colorScheme,
+                            title: AppConstants.claudeModelLabel,
+                            subtitle: 'Use Anthropic\'s Claude API',
+                            icon: Icons.psychology_alt_outlined,
+                            value: ModelType.claude,
+                            groupValue: state.modelType,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildModelTypeOption(
+                            context,
+                            colorScheme,
+                            title: AppConstants.ai4ChatModelLabel,
+                            subtitle: 'Use AI4Chat API for cloud inference',
+                            icon: Icons.chat_outlined,
+                            value: ModelType.ai4Chat,
+                            groupValue: state.modelType,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildModelTypeOption(
+                            context,
+                            colorScheme,
+                            title: AppConstants.customModelLabel,
+                            subtitle: 'Configure a custom LLM API endpoint',
+                            icon: Icons.settings_suggest_outlined,
+                            value: ModelType.custom,
+                            groupValue: state.modelType,
+                          ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // OpenAI Settings
+                  // Model-specific Settings
                   if (state.modelType == ModelType.openAi)
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      switchInCurve: Curves.easeOutCubic,
-                      child: Card(
-                        key: const ValueKey('openai_settings'),
-                        elevation: 0,
-                        color: colorScheme.surfaceVariant.withOpacity(0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.api_rounded,
-                                    color: colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    AppConstants.openAiSettingsTitle,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: _apiKeyController,
-                                decoration: InputDecoration(
-                                  labelText: 'API Key',
-                                  hintText: AppConstants.apiKeyHint,
-                                  prefixIcon: Icon(
-                                    Icons.key_rounded,
-                                    color: colorScheme.primary,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                obscureText: true,
-                                style: TextStyle(color: colorScheme.onSurface),
-                              ),
-                              const SizedBox(height: 16),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: FilledButton.icon(
-                                  onPressed: () {
-                                    if (_apiKeyController.text.isNotEmpty) {
-                                      context.read<SettingsBloc>().add(
-                                        SaveApiKeyEvent(
-                                          apiKey: _apiKeyController.text,
-                                        ),
-                                      );
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            AppConstants.apiKeyErrorMessage,
-                                            style: TextStyle(
-                                              color:
-                                                  colorScheme.onErrorContainer,
-                                            ),
-                                          ),
-                                          backgroundColor:
-                                              colorScheme.errorContainer,
-                                          behavior: SnackBarBehavior.floating,
-                                          margin: const EdgeInsets.all(12),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.save_rounded),
-                                  label: const Text(
-                                    AppConstants.saveButtonText,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    _buildModelSettings(
+                      context,
+                      colorScheme,
+                      state,
+                      title: AppConstants.openAiSettingsTitle,
+                      icon: Icons.api_rounded,
+                      modelType: ModelType.openAi,
+                      showModelName: false,
+                      apiKeyHint: AppConstants.apiKeyHint,
+                    ),
+
+                  if (state.modelType == ModelType.claude)
+                    _buildModelSettings(
+                      context,
+                      colorScheme,
+                      state,
+                      title: AppConstants.claudeSettingsTitle,
+                      icon: Icons.psychology_alt_outlined,
+                      modelType: ModelType.claude,
+                      showModelName: true,
+                      apiKeyHint: 'Enter your Claude API key',
+                      modelNameHint: 'e.g., claude-3-opus-20240229',
+                    ),
+
+                  if (state.modelType == ModelType.ai4Chat)
+                    _buildModelSettings(
+                      context,
+                      colorScheme,
+                      state,
+                      title: AppConstants.ai4ChatSettingsTitle,
+                      icon: Icons.chat_outlined,
+                      modelType: ModelType.ai4Chat,
+                      showModelName: true,
+                      apiKeyHint: 'Enter your AI4Chat API key',
+                      modelNameHint: 'e.g., gpt-4, llama-3, or claude-opus',
+                    ),
+
+                  if (state.modelType == ModelType.custom)
+                    _buildModelSettings(
+                      context,
+                      colorScheme,
+                      state,
+                      title: AppConstants.customSettingsTitle,
+                      icon: Icons.settings_suggest_outlined,
+                      modelType: ModelType.custom,
+                      showModelName: true,
+                      apiKeyHint: 'Enter API key for custom endpoint',
+                      modelNameHint: 'Enter model identifier',
                     ),
 
                   // Local Model Settings
@@ -319,6 +331,133 @@ class _SettingsPageState extends State<SettingsPage> {
             );
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildModelSettings(
+    BuildContext context,
+    ColorScheme colorScheme,
+    SettingsLoaded state, {
+    required String title,
+    required IconData icon,
+    required ModelType modelType,
+    required bool showModelName,
+    required String apiKeyHint,
+    String? modelNameHint,
+  }) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOutCubic,
+      child: Card(
+        key: ValueKey('${modelType.toString()}_settings'),
+        elevation: 0,
+        color: colorScheme.surfaceVariant.withOpacity(0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // API Key field
+              TextField(
+                controller: _apiKeyControllers[modelType],
+                decoration: InputDecoration(
+                  labelText: AppConstants.apiKeyLabel,
+                  hintText: apiKeyHint,
+                  prefixIcon: Icon(
+                    Icons.key_rounded,
+                    color: colorScheme.primary,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                obscureText: true,
+                style: TextStyle(color: colorScheme.onSurface),
+              ),
+
+              // Optional Model Name field
+              if (showModelName) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _modelNameControllers[modelType],
+                  decoration: InputDecoration(
+                    labelText: AppConstants.modelNameLabel,
+                    hintText: modelNameHint ?? AppConstants.modelNameHint,
+                    prefixIcon: Icon(
+                      Icons.label_outline_rounded,
+                      color: colorScheme.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    final apiKey = _apiKeyControllers[modelType]!.text;
+                    if (apiKey.isNotEmpty) {
+                      // Save API Key
+                      context.read<SettingsBloc>().add(
+                        SaveApiKeyEvent(apiKey: apiKey, modelType: modelType),
+                      );
+
+                      // If model name is shown and not empty, save it too
+                      if (showModelName &&
+                          _modelNameControllers[modelType]!.text.isNotEmpty) {
+                        context.read<SettingsBloc>().add(
+                          SaveModelNameEvent(
+                            modelName: _modelNameControllers[modelType]!.text,
+                            modelType: modelType,
+                          ),
+                        );
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            AppConstants.apiKeyErrorMessage,
+                            style: TextStyle(
+                              color: colorScheme.onErrorContainer,
+                            ),
+                          ),
+                          backgroundColor: colorScheme.errorContainer,
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.all(12),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.save_rounded),
+                  label: const Text(AppConstants.saveButtonText),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

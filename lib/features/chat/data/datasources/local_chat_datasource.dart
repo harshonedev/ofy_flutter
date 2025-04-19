@@ -19,10 +19,11 @@ abstract class LocalChatDataSource {
 
 class LocalChatDataSourceImpl implements LocalChatDataSource {
   final String _cachedMessagesKey = 'CACHED_MESSAGES';
+  final SharedPreferences sharedPreferences;
+  LocalChatDataSourceImpl({required this.sharedPreferences});
 
   @override
   Future<List<MessageModel>> getCachedMessages() async {
-    final sharedPreferences = await SharedPreferences.getInstance();
     final jsonString = sharedPreferences.getStringList(_cachedMessagesKey);
 
     if (jsonString != null) {
@@ -36,8 +37,6 @@ class LocalChatDataSourceImpl implements LocalChatDataSource {
 
   @override
   Future<bool> cacheMessages(List<MessageModel> messages) async {
-    final sharedPreferences = await SharedPreferences.getInstance();
-
     final jsonStringList =
         messages.map((message) => json.encode(message.toJson())).toList();
 
@@ -46,7 +45,6 @@ class LocalChatDataSourceImpl implements LocalChatDataSource {
 
   @override
   Future<bool> clearCache() async {
-    final sharedPreferences = await SharedPreferences.getInstance();
     return await sharedPreferences.remove(_cachedMessagesKey);
   }
 }

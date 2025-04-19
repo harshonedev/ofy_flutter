@@ -20,13 +20,40 @@ class SaveModelTypeEvent extends SettingsEvent {
   List<Object?> get props => [modelType];
 }
 
-class GetApiKeyEvent extends SettingsEvent {}
+class GetApiKeyEvent extends SettingsEvent {
+  final ModelType modelType;
+
+  const GetApiKeyEvent({required this.modelType});
+
+  @override
+  List<Object?> get props => [modelType];
+}
 
 class SaveApiKeyEvent extends SettingsEvent {
   final String apiKey;
+  final ModelType modelType;
 
-  const SaveApiKeyEvent({required this.apiKey});
+  const SaveApiKeyEvent({required this.apiKey, required this.modelType});
 
   @override
-  List<Object?> get props => [apiKey];
+  List<Object?> get props => [apiKey, modelType];
+}
+
+class GetModelNameEvent extends SettingsEvent {
+  final ModelType modelType;
+
+  const GetModelNameEvent({required this.modelType});
+
+  @override
+  List<Object?> get props => [modelType];
+}
+
+class SaveModelNameEvent extends SettingsEvent {
+  final String modelName;
+  final ModelType modelType;
+
+  const SaveModelNameEvent({required this.modelName, required this.modelType});
+
+  @override
+  List<Object?> get props => [modelName, modelType];
 }

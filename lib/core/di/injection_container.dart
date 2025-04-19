@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:llm_cpp_chat_app/features/chat/domain/usecases/update_chat_history.dart';
+import 'package:llm_cpp_chat_app/features/settings/domain/usecases/get_api_key.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 import '../../features/chat/data/datasources/local_chat_datasource.dart';
 import '../../features/chat/data/datasources/remote_chat_datasource.dart';
@@ -15,7 +17,10 @@ import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/settings/data/datasources/settings_local_datasource.dart';
 import '../../features/settings/data/repositories/settings_repository_impl.dart';
 import '../../features/settings/domain/repositories/settings_repository.dart';
+import '../../features/settings/domain/usecases/get_model_name.dart';
 import '../../features/settings/domain/usecases/get_model_type_preference.dart';
+import '../../features/settings/domain/usecases/save_api_key.dart';
+import '../../features/settings/domain/usecases/save_model_name.dart';
 import '../../features/settings/domain/usecases/save_model_type_preference.dart';
 import '../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../features/model_picker/data/datasources/model_picker_local_datasource.dart';
@@ -62,10 +67,10 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<LocalChatDataSource>(
-    () => LocalChatDataSourceImpl(),
+    () => LocalChatDataSourceImpl(sharedPreferences: sl()),
   );
   sl.registerLazySingleton<RemoteChatDataSource>(
-    () => RemoteChatDataSourceImpl(),
+    () => RemoteChatDataSourceImpl(client: sl()),
   );
 
   //! Features - Settings
@@ -74,12 +79,20 @@ Future<void> init() async {
     () => SettingsBloc(
       getModelTypePreference: sl(),
       saveModelTypePreference: sl(),
+      getApiKey: sl(),
+      saveApiKey: sl(),
+      getModelName: sl(),
+      saveModelName: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => GetModelTypePreference(sl()));
   sl.registerLazySingleton(() => SaveModelTypePreference(sl()));
+  sl.registerLazySingleton(() => GetApiKey(sl()));
+  sl.registerLazySingleton(() => SaveApiKey(sl()));
+  sl.registerLazySingleton(() => GetModelName(sl()));
+  sl.registerLazySingleton(() => SaveModelName(sl()));
 
   // Repository
   sl.registerLazySingleton<SettingsRepository>(
@@ -110,6 +123,9 @@ Future<void> init() async {
   sl.registerLazySingleton<ModelPickerLocalDataSource>(
     () => ModelPickerLocalDataSourceImpl(sharedPreferences: sl()),
   );
+
+  // http client
+  sl.registerLazySingleton(() => http.Client());
 
   //! External
   final sharedPreferences = await SharedPreferences.getInstance();

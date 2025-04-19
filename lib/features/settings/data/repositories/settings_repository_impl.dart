@@ -34,9 +34,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @override
-  Future<Either<Failure, String?>> getApiKey() async {
+  Future<Either<Failure, String?>> getApiKey(ModelType modelType) async {
     try {
-      final apiKey = await localDataSource.getApiKey();
+      final apiKey = await localDataSource.getApiKey(modelType);
       return Right(apiKey);
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));
@@ -44,9 +44,35 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> saveApiKey(String apiKey) async {
+  Future<Either<Failure, bool>> saveApiKey(
+    String apiKey,
+    ModelType modelType,
+  ) async {
     try {
-      final result = await localDataSource.saveApiKey(apiKey);
+      final result = await localDataSource.saveApiKey(apiKey, modelType);
+      return Right(result);
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> getModelName(ModelType modelType) async {
+    try {
+      final modelName = await localDataSource.getModelName(modelType);
+      return Right(modelName);
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> saveModelName(
+    String modelName,
+    ModelType modelType,
+  ) async {
+    try {
+      final result = await localDataSource.saveModelName(modelName, modelType);
       return Right(result);
     } on CacheException catch (e) {
       return Left(CacheFailure(message: e.message));

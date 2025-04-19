@@ -19,6 +19,13 @@ class AppConstants {
   static const String messageHint = 'Type your message...';
   static const String sendButtonText = 'Send';
 
+  //BASE URL of the API
+  static const String openAiBaseUrl =
+      'https://api.openai.com/v1/chat/completions';
+  static const String ai4ChatBaseUrl =
+      'https://api.ai4chat.com/v1/chat/completions';
+  static const String claudeaiBaseUrl = 'https://api.anthropic.com/v1/messages';
+
   // Settings
   static const String settingsTitle = 'Settings';
   static const String openAiSettingsTitle = 'OpenAI Settings';
@@ -32,6 +39,21 @@ class AppConstants {
   static const String modelSelectionTitle = 'Select Model Type';
   static const String localModelLabel = 'Local Model';
   static const String openAiModelLabel = 'OpenAI';
+  static const String claudeModelLabel = 'Claude AI';
+  static const String ai4ChatModelLabel = 'AI4Chat';
+  static const String customModelLabel = 'Custom API';
   static const String openAiApiKeyMissing =
       'Please set your OpenAI API key in settings first';
+  static const String claudeApiKeyMissing =
+      'Please set your Claude API key in settings first';
+  static const String ai4ChatApiKeyMissing =
+      'Please set your AI4Chat API key in settings first';
+
+  // Model Settings
+  static const String ai4ChatSettingsTitle = 'AI4Chat Settings';
+  static const String claudeSettingsTitle = 'Claude AI Settings';
+  static const String customSettingsTitle = 'Custom API Settings';
+  static const String modelNameLabel = 'Model Name';
+  static const String modelNameHint = 'Enter model name';
+  static const String apiKeyLabel = 'API Key';
 }

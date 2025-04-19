@@ -154,28 +154,28 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         }
       } else {
         // Use remote API (OpenAI, etc.)
-        final params = SendMessageParams(
-          content: event.message,
-          modelPath: event.modelPath ?? _modelPath,
-        );
+        // final params = SendMessageParams(
+        //   content: event.message,
+        //   modelPath: event.modelPath ?? _modelPath,
+        // );
 
-        final result = await sendMessage(params);
+        // final result = await sendMessage(params);
 
-        result.fold((failure) => emit(ChatError(message: failure.toString())), (
-          assistantMessage,
-        ) {
-          if (state is ChatLoaded) {
-            final latestState = state as ChatLoaded;
-            final finalMessages = List<Message>.from(latestState.messages)
-              ..add(assistantMessage);
+        // result.fold((failure) => emit(ChatError(message: failure.toString())), (
+        //   assistantMessage,
+        // ) {
+        //   if (state is ChatLoaded) {
+        //     final latestState = state as ChatLoaded;
+        //     final finalMessages = List<Message>.from(latestState.messages)
+        //       ..add(assistantMessage);
 
-            emit(
-              latestState
-                  .copyWith(messages: finalMessages)
-                  .clearCurrentResponse(),
-            );
-          }
-        });
+        //     emit(
+        //       latestState
+        //           .copyWith(messages: finalMessages)
+        //           .clearCurrentResponse(),
+        //     );
+        //   }
+        // });
       }
     }
   }

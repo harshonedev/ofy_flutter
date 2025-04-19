@@ -10,11 +10,17 @@ abstract class SettingsLocalDataSource {
   /// Caches the ModelType for later use
   Future<bool> saveModelTypePreference(ModelType modelType);
 
-  /// Gets the cached API key if any
-  Future<String?> getApiKey();
+  /// Gets the cached API key for a specific model type
+  Future<String?> getApiKey(ModelType modelType);
 
-  /// Caches the API key for later use
-  Future<bool> saveApiKey(String apiKey);
+  /// Caches the API key for a specific model type
+  Future<bool> saveApiKey(String apiKey, ModelType modelType);
+
+  /// Gets the cached model name for a specific model type
+  Future<String?> getModelName(ModelType modelType);
+
+  /// Caches the model name for a specific model type
+  Future<bool> saveModelName(String modelName, ModelType modelType);
 }
 
 class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
@@ -24,6 +30,7 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
 
   static const _modelTypeKey = 'MODEL_TYPE_KEY';
   static const _apiKeyKey = 'API_KEY';
+  static const _modelNameKey = 'MODEL_NAME';
 
   @override
   Future<ModelType> getModelTypePreference() async {
@@ -51,20 +58,48 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
   }
 
   @override
-  Future<String?> getApiKey() async {
+  Future<String?> getApiKey(ModelType modelType) async {
     try {
-      return sharedPreferences.getString(_apiKeyKey);
+      return sharedPreferences.getString(
+        _apiKeyKey + _modelTypeToString(modelType),
+      );
     } catch (e) {
       throw CacheException(message: 'Failed to load API key');
     }
   }
 
   @override
-  Future<bool> saveApiKey(String apiKey) async {
+  Future<bool> saveApiKey(String apiKey, ModelType modelType) async {
     try {
-      return await sharedPreferences.setString(_apiKeyKey, apiKey);
+      return await sharedPreferences.setString(
+        _apiKeyKey + _modelTypeToString(modelType),
+        apiKey,
+      );
     } catch (e) {
       throw CacheException(message: 'Failed to save API key');
+    }
+  }
+
+  @override
+  Future<String?> getModelName(ModelType modelType) async {
+    try {
+      return sharedPreferences.getString(
+        _modelNameKey + _modelTypeToString(modelType),
+      );
+    } catch (e) {
+      throw CacheException(message: 'Failed to load model name');
+    }
+  }
+
+  @override
+  Future<bool> saveModelName(String modelName, ModelType modelType) async {
+    try {
+      return await sharedPreferences.setString(
+        _modelNameKey + _modelTypeToString(modelType),
+        modelName,
+      );
+    } catch (e) {
+      throw CacheException(message: 'Failed to save model name');
     }
   }
 
@@ -76,11 +111,11 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
         return 'openai';
       case ModelType.claude:
         return 'claude';
-      case ModelType.ai4chat:
+      case ModelType.ai4Chat:
         return 'ai4chat';
       case ModelType.custom:
         return 'custom';
-      }
+    }
   }
 
   ModelType _stringToModelType(String modelTypeString) {
@@ -92,7 +127,7 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
       case 'claude':
         return ModelType.claude;
       case 'ai4chat':
-        return ModelType.ai4chat;
+        return ModelType.ai4Chat;
       case 'custom':
         return ModelType.custom;
       default:
