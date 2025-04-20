@@ -145,6 +145,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             return;
           }
 
+          await updateChatHistory(userMessage);
+
           emit(
             currentState
                 .copyWith(messages: updatedMessages, isChatFinished: false)
@@ -187,8 +189,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           return;
         }
 
-        await updateChatHistory(userMessage);
-
         emit(
           currentState
               .copyWith(messages: updatedMessages, isChatFinished: false)
@@ -220,7 +220,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
               emit(
                 latestState
-                    .copyWith(messages: finalMessages)
+                    .copyWith(messages: finalMessages, isChatFinished: true)
                     .clearCurrentResponse(),
               );
             }

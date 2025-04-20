@@ -138,12 +138,16 @@ class RemoteChatDataSourceImpl implements RemoteChatDataSource {
   }
 }
 
-class ApiMessageParams{
+class ApiMessageParams {
   final String content;
   final String role;
 
-  ApiMessageParams({
-    required this.content,
-    required this.role,
-  });
+  ApiMessageParams({required this.content, required this.role});
+
+  factory ApiMessageParams.fromJson(Map<String, dynamic> json) {
+    return ApiMessageParams(content: json['content'], role: json['role']);
+  }
+  Map<String, dynamic> toJson() {
+    return {'content': content, 'role': role};
+  }
 }
