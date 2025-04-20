@@ -6,7 +6,6 @@ import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_bloc.dart'
 import '../../../../core/constants/app_constants.dart';
 import '../../../chat/presentation/bloc/chat_event.dart';
 import '../bloc/settings_bloc.dart';
-import '../bloc/settings_event.dart';
 import '../bloc/settings_state.dart';
 import '../controllers/settings_controller.dart';
 import '../widgets/local_model_settings_card.dart';

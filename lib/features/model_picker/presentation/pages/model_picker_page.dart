@@ -31,12 +31,12 @@ class ModelPickerPage extends StatelessWidget {
               state.saveSuccess == true &&
               state.modelPath != null) {
             // Initialize Chat BLoC with selected model path
-            context.read<ChatBloc>().add(InitializeModelEvent(modelPath: state.modelPath!));
+            context.read<ChatBloc>().add(
+              InitializeModelEvent(modelPath: state.modelPath!),
+            );
 
             // Navigate to chat page when model is successfully selected
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const ChatPage()),
-            );
+            Navigator.of(context).pop();
           }
         },
         builder: (context, state) {
@@ -204,9 +204,7 @@ class ModelPickerPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 FilledButton.icon(
                   onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => const ChatPage()),
-                    );
+                    Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.chat_rounded),
                   label: const Text('Continue to Chat'),
