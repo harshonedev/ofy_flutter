@@ -6,7 +6,6 @@ import 'package:path/path.dart' as path;
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../chat/presentation/bloc/chat_bloc.dart';
-import '../../../chat/presentation/pages/chat_page.dart';
 import '../bloc/model_picker_bloc.dart';
 import '../bloc/model_picker_event.dart';
 import '../bloc/model_picker_state.dart';
