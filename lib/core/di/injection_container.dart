@@ -1,5 +1,13 @@
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:llm_cpp_chat_app/features/chat/domain/usecases/update_chat_history.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugging_face_api.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/data/repository/download_repository_impl.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/download_model.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_gguf_models.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_model_details.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/settings/domain/usecases/get_api_key.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -126,6 +134,30 @@ Future<void> init() async {
 
   // http client
   sl.registerLazySingleton(() => http.Client());
+
+  // Dio
+  sl.registerLazySingleton(() => Dio());
+
+  // Download Manager
+  sl.registerLazySingleton(
+    () => DownloadManagerBloc(
+      getGGUFModels: sl(),
+      getModelDetails: sl(),
+      downloadModel: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetGGUFModels(sl()));
+  sl.registerLazySingleton(() => GetModelDetails(sl()));
+  sl.registerLazySingleton(() => DownloadModel(sl()));
+
+  // Repository
+  sl.registerLazySingleton<DownloadRepository>(
+    () => DownloadRepositoryImpl(huggingFaceApi: sl()),
+  );
+  // Data sources
+  sl.registerLazySingleton<HuggingFaceApi>(() => HuggingFaceApiImpl(dio: sl()));
 
   //! External
   final sharedPreferences = await SharedPreferences.getInstance();

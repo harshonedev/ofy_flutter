@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/settings/presentation/bloc/settings_event.dart';
 
 import 'core/di/injection_container.dart' as di;
@@ -28,6 +29,9 @@ class MainApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => di.sl<ChatBloc>()),
+        BlocProvider<DownloadManagerBloc>(
+          create: (_) => di.sl<DownloadManagerBloc>(),
+        ),
         BlocProvider(
           create: (context) => di.sl<SettingsBloc>()..add(GetSettingsEvent()),
         ),

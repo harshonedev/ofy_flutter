@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_event.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/pages/model_list_page.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../../core/constants/app_constants.dart';
@@ -209,6 +210,24 @@ class ModelPickerPage extends StatelessWidget {
                   label: const Text('Continue to Chat'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ModelListPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.file_open_rounded),
+                  label: const Text('Download Model'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
