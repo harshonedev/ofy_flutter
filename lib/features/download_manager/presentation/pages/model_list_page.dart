@@ -23,48 +23,117 @@ class _ModelListPageState extends State<ModelListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('GGUF Models'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('GGUF Models'),
+        scrolledUnderElevation: 2,
+      ),
       body: BlocBuilder<DownloadManagerBloc, DownloadManagerState>(
+        buildWhen: (previous, current) {
+          // Only rebuild when the state changes to LoadingModelsState,
+          // LoadedModelsState, or ErrorState
+          return current is LoadingModelsState ||
+              current is LoadedModelsState ||
+              current is ErrorState;
+        },
         builder: (context, state) {
           if (state is LoadingModelsState) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(color: colorScheme.primary),
+            );
           } else if (state is LoadedModelsState) {
             return _buildModelList(context, state.models);
           } else if (state is ErrorState) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 60),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error: ${state.message}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      BlocProvider.of<DownloadManagerBloc>(
-                        context,
-                      ).add(LoadModelsEvent());
-                    },
-                    child: const Text('Try Again'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: colorScheme.error,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error: ${state.message}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () {
+                        BlocProvider.of<DownloadManagerBloc>(
+                          context,
+                        ).add(LoadModelsEvent());
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Try Again'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
-          return const Center(child: Text('Select a model to download'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.model_training_rounded,
+                  size: 64,
+                  color: colorScheme.secondary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Select a model to download',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed:
+                      () => BlocProvider.of<DownloadManagerBloc>(
+                        context,
+                      ).add(LoadModelsEvent()),
+                  child: Text(
+                    'Refresh',
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                      color: colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
   }
 
   Widget _buildModelList(BuildContext context, List<Model> models) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (models.isEmpty) {
-      return const Center(child: Text('No models available'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_rounded,
+              size: 64,
+              color: colorScheme.tertiary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No models available',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
@@ -73,13 +142,11 @@ class _ModelListPageState extends State<ModelListPage> {
       itemBuilder: (context, index) {
         final model = models[index];
         return Card(
-          elevation: 2,
+          elevation: 0,
           margin: const EdgeInsets.only(bottom: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          color: colorScheme.surfaceVariant.withOpacity(0.4),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             onTap: () {
               Navigator.push(
                 context,
@@ -90,23 +157,43 @@ class _ModelListPageState extends State<ModelListPage> {
             },
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    model.id,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.model_training_rounded,
+                      color: colorScheme.primary,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pipeline: ${model.pipeline}',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          model.id,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          model.pipeline ?? 'Unknown',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
                   ),
-                  
-                  const SizedBox(height: 4),
-              
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ],
               ),
             ),

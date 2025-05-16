@@ -5,20 +5,22 @@ class DownloadButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   const DownloadButton({
-    Key? key,
+    super.key,
     required this.fileName,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return IconButton.filled(
       onPressed: onPressed,
-      icon: const Icon(Icons.download),
-      label: const Text('Download'),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      icon: const Icon(Icons.download_rounded),
+      style: FilledButton.styleFrom(
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+        elevation: 0,
       ),
     );
   }

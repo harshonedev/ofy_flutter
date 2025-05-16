@@ -52,3 +52,21 @@ class ErrorState extends DownloadManagerState {
   @override
   List<Object> get props => [message];
 }
+
+class FileSizeFetchedState extends DownloadManagerState {
+  final List<FileDetails> files;
+
+  const FileSizeFetchedState(this.files);
+
+  @override
+  List<Object> get props => [files];
+}
+
+class FileSizeErrorState extends DownloadManagerState {
+  final String message;
+
+  const FileSizeErrorState(this.message);
+
+  @override
+  List<Object> get props => [message];
+}

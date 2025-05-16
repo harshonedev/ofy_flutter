@@ -12,4 +12,5 @@ class ModelData extends Model {
       pipeline: json['pipeline_tag'],
     );
   }
+  
 }

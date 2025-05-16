@@ -5,6 +5,7 @@ import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugg
 import 'package:llm_cpp_chat_app/features/download_manager/data/repository/download_repository_impl.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/download_model.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_file_size.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_gguf_models.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_model_details.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
@@ -144,6 +145,7 @@ Future<void> init() async {
       getGGUFModels: sl(),
       getModelDetails: sl(),
       downloadModel: sl(),
+      getFileSizeUseCase: sl(),
     ),
   );
 
@@ -151,6 +153,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetGGUFModels(sl()));
   sl.registerLazySingleton(() => GetModelDetails(sl()));
   sl.registerLazySingleton(() => DownloadModel(sl()));
+  sl.registerLazySingleton(() => GetFileSizeUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<DownloadRepository>(
