@@ -355,9 +355,12 @@ class _ModelDetailsPageState extends State<ModelDetailsPage> {
                         fileName: fileDetails.fileName,
                         onPressed: () {
                           // Trigger download
-                          BlocProvider.of<DownloadManagerBloc>(
-                            context,
-                          ).add(DownloadModelEvent(fileDetails.fileName));
+                          BlocProvider.of<DownloadManagerBloc>(context).add(
+                            DownloadModelEvent(
+                              fileDetails.fileName,
+                              fileDetails.downloadUrl,
+                            ),
+                          );
                         },
                       ),
                     ],

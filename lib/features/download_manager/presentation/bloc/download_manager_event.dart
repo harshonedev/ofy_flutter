@@ -11,7 +11,6 @@ abstract class DownloadManagerEvent extends Equatable {
 
 class LoadModelsEvent extends DownloadManagerEvent {}
 
-
 class LoadModelDetailsEvent extends DownloadManagerEvent {
   final String modelId;
 
@@ -23,12 +22,14 @@ class LoadModelDetailsEvent extends DownloadManagerEvent {
 
 class DownloadModelEvent extends DownloadManagerEvent {
   final String fileName;
+  final String fileUrl;
 
-  const DownloadModelEvent(this.fileName);
+  const DownloadModelEvent(this.fileName, this.fileUrl);
 
   @override
   List<Object> get props => [fileName];
 }
+
 class FetchFileSizeEvent extends DownloadManagerEvent {
   final List<FileDetails> files;
 

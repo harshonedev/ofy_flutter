@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.app.offlineai"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -34,8 +34,8 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            //signingConfig = signingConfigs.getByName("debug")
-            signingConfig = null
+            signingConfig = signingConfigs.getByName("debug")
+            //signingConfig = null
         }
     }
 }

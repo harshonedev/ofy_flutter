@@ -10,10 +10,10 @@ class DownloadModel implements UseCase<void, Params> {
   DownloadModel(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(Params params) async {
+  Future<Either<Failure, String?>> call(Params params) async {
     try {
-      await repository.downloadModel(params.modelFileName);
-      return const Right(null);
+      final taskId = await repository.downloadModel(params.modelFileUrl, params.modelFileName);
+      return Right(taskId);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -21,9 +21,10 @@ class DownloadModel implements UseCase<void, Params> {
 }
 
 class Params extends Equatable {
+  final String modelFileUrl;
   final String modelFileName;
 
-  const Params({required this.modelFileName});
+  const Params({required this.modelFileName, required this.modelFileUrl});
 
   @override
   List<Object> get props => [modelFileName];

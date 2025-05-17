@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:llm_cpp_chat_app/features/chat/domain/usecases/update_chat_history.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/download_service.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugging_face_api.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/repository/download_repository_impl.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
@@ -157,10 +158,13 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<DownloadRepository>(
-    () => DownloadRepositoryImpl(huggingFaceApi: sl()),
+    () => DownloadRepositoryImpl(huggingFaceApi: sl(), downloadService: sl()),
   );
   // Data sources
   sl.registerLazySingleton<HuggingFaceApi>(() => HuggingFaceApiImpl(dio: sl()));
+
+  // Download Service
+  sl.registerLazySingleton(() => DownloadService(sharedPreferences: sl()));
 
   //! External
   final sharedPreferences = await SharedPreferences.getInstance();

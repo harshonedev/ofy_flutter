@@ -407,6 +407,21 @@ class ModelPickerPage extends StatelessWidget {
                 ),
               ),
             ),
+
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                //context.read<ModelPickerBloc>().add(SelectModelEvent());
+              },
+              icon: const Icon(Icons.download_done),
+              label: const Text(AppConstants.selectFromDownloadButtonText),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
               'Recommended models: Llama 2, Mistral, Gemma',

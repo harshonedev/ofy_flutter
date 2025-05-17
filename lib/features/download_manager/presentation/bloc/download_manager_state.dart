@@ -34,15 +34,25 @@ class LoadedModelDetailsState extends DownloadManagerState {
 }
 
 class DownloadingModelState extends DownloadManagerState {
+  final String taskId;
   final int progress;
 
-  const DownloadingModelState(this.progress);
+  const DownloadingModelState(this.progress, this.taskId);
 
   @override
   List<Object> get props => [progress];
 }
 
 class DownloadCompletedState extends DownloadManagerState {}
+
+class DownloadErrorState extends DownloadManagerState {
+  final String message;
+
+  const DownloadErrorState(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
 
 class ErrorState extends DownloadManagerState {
   final String message;

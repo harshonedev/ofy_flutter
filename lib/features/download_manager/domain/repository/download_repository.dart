@@ -7,8 +7,9 @@ import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model
 abstract class DownloadRepository {
   Future<Either<Failure, List<Model>>> getGGUFModels();
   Future<Either<Failure, ModelDetails>> getModelDetails(String modelId);
-  Future<void> downloadModel(String modelFileName);
-  Stream<int> getDownloadProgress();
-  Future<void> cancelDownload();
+  Future<String?> downloadModel(String fileUrl, String fileName);
+  Future<void> cancelDownload(String taskId);
+  Future<void> pauseDownload(String taskId);
+  Future<String?> resumeDownload(String taskId);
   Stream<Either<Failure, FileSizeDetails>> getFileSize(List<FileDetails> files);
 }

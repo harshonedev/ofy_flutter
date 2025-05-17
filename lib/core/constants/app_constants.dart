@@ -18,6 +18,7 @@ class AppConstants {
   static const String chatScreenTitle = 'Chat with LLM';
   static const String messageHint = 'Type your message...';
   static const String sendButtonText = 'Send';
+  static const String selectFromDownloadButtonText = 'Select from Downloads';
 
   //BASE URL of the API
   static const String openAiBaseUrl =
@@ -57,4 +58,7 @@ class AppConstants {
   static const String modelNameLabel = 'Model Name';
   static const String modelNameHint = 'Enter model name';
   static const String apiKeyLabel = 'API Key';
+
+  // Download Manager
+  static const String defaultDownloadPath = '/storage/emulated/0/Download';
 }

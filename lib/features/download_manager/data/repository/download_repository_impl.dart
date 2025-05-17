@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:llm_cpp_chat_app/core/error/exceptions.dart';
 import 'package:llm_cpp_chat_app/core/error/failures.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/download_service.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugging_face_api.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/file_size_details.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model.dart';
@@ -12,23 +13,34 @@ import 'package:logger/web.dart';
 
 class DownloadRepositoryImpl implements DownloadRepository {
   final HuggingFaceApi huggingFaceApi;
+  final DownloadService downloadService;
   final Logger logger = Logger();
 
-  DownloadRepositoryImpl({required this.huggingFaceApi});
+  DownloadRepositoryImpl({required this.huggingFaceApi, required this.downloadService});
   @override
-  Future<void> cancelDownload() {
-    throw UnimplementedError();
+  Future<void> cancelDownload(String taskId) async {
+    try {
+      await downloadService.cancelDownload(taskId);
+      logger.i('Download cancelled');
+    } catch (e) {
+      logger.e('Error cancelling download: $e');
+      throw Exception('Failed to cancel download');
+    }
   }
 
   @override
-  Future<void> downloadModel(String modelFileName) {
-    throw UnimplementedError();
+  Future<String?> downloadModel(String fileUrl, String fileName) async{
+    try {
+      return await downloadService.downloadFile(
+        fileUrl,
+        fileName,
+      );
+    } catch (e) {
+      logger.e('Error downloading model: $e');
+      throw Exception('Failed to download model');
+    }
   }
 
-  @override
-  Stream<int> getDownloadProgress() {
-    throw UnimplementedError();
-  }
 
   @override
   Future<Either<Failure, List<Model>>> getGGUFModels() async {
@@ -102,6 +114,26 @@ class DownloadRepositoryImpl implements DownloadRepository {
     } catch (e) {
       logger.e(e.toString());
       yield const Left(ServerFailure("Failed to get file size"));
+    }
+  }
+  
+  @override
+  Future<void> pauseDownload(String taskId) {
+    try {
+      return downloadService.pauseDownload(taskId);
+    } catch (e) {
+      logger.e('Error pausing download: $e');
+      throw Exception('Failed to pause download');
+    }
+  }
+  
+  @override
+  Future<String?> resumeDownload(String taskId) {
+    try {
+      return downloadService.resumeDownload(taskId);
+    } catch (e) {
+      logger.e('Error resuming download: $e');
+      throw Exception('Failed to resume download');
     }
   }
 }
