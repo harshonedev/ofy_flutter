@@ -1,6 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/file_size_details.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_details.dart';
 
 abstract class DownloadManagerEvent extends Equatable {
   const DownloadManagerEvent();
@@ -8,17 +6,9 @@ abstract class DownloadManagerEvent extends Equatable {
   @override
   List<Object> get props => [];
 }
+class LoadDownloadedModelsEvent extends DownloadManagerEvent {}
 
-class LoadModelsEvent extends DownloadManagerEvent {}
-
-class LoadModelDetailsEvent extends DownloadManagerEvent {
-  final String modelId;
-
-  const LoadModelDetailsEvent(this.modelId);
-
-  @override
-  List<Object> get props => [modelId];
-}
+class LoadActiveDownloadsEvent extends DownloadManagerEvent {}
 
 class DownloadModelEvent extends DownloadManagerEvent {
   final String fileName;
@@ -30,31 +20,38 @@ class DownloadModelEvent extends DownloadManagerEvent {
   List<Object> get props => [fileName];
 }
 
-class FetchFileSizeEvent extends DownloadManagerEvent {
-  final List<FileDetails> files;
+class CancelDownloadEvent extends DownloadManagerEvent {
+  final String taskId;
 
-  const FetchFileSizeEvent(this.files);
-
-  @override
-  List<Object> get props => [files];
-}
-
-class FileSizeUpdateEvent extends DownloadManagerEvent {
-  final FileSizeDetails fileSizeDetails;
-
-  const FileSizeUpdateEvent(this.fileSizeDetails);
+  const CancelDownloadEvent(this.taskId);
 
   @override
-  List<Object> get props => [fileSizeDetails];
+  List<Object> get props => [taskId]; 
 }
 
-class FileSizeErrorEvent extends DownloadManagerEvent {
-  final String errorMessage;
+class PauseDownloadEvent extends DownloadManagerEvent {
+  final String taskId;
 
-  const FileSizeErrorEvent(this.errorMessage);
+  const PauseDownloadEvent(this.taskId);
 
   @override
-  List<Object> get props => [errorMessage];
+  List<Object> get props => [taskId];
 }
 
-class CancelDownloadEvent extends DownloadManagerEvent {}
+class ResumeDownloadEvent extends DownloadManagerEvent {
+  final String taskId;
+
+  const ResumeDownloadEvent(this.taskId);
+
+  @override
+  List<Object> get props => [taskId];
+}
+
+class RemoveModelEvent extends DownloadManagerEvent {
+  final String taskId;
+
+  const RemoveModelEvent(this.taskId);
+
+  @override
+  List<Object> get props => [taskId];
+}

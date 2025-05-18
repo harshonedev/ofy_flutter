@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_event.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/presentation/pages/model_list_page.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/pages/download_manager_page.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../../core/constants/app_constants.dart';
@@ -34,7 +34,6 @@ class ModelPickerPage extends StatelessWidget {
             context.read<ChatBloc>().add(
               InitializeModelEvent(modelPath: state.modelPath!),
             );
-
             // Navigate to chat page when model is successfully selected
             Navigator.of(context).pop();
           }
@@ -220,12 +219,12 @@ class ModelPickerPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const ModelListPage(),
+                        builder: (context) => const DownloadManager(),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.file_open_rounded),
-                  label: const Text('Download Model'),
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text(AppConstants.selectFromDownloadButtonText),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
@@ -411,9 +410,14 @@ class ModelPickerPage extends StatelessWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const DownloadManager(),
+                  ),
+                );
                 //context.read<ModelPickerBloc>().add(SelectModelEvent());
               },
-              icon: const Icon(Icons.download_done),
+              icon: const Icon(Icons.download_rounded),
               label: const Text(AppConstants.selectFromDownloadButtonText),
               style: FilledButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),

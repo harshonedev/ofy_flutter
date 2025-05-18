@@ -16,6 +16,10 @@ class ServerFailure extends Failure {
 
 }
 
+class DownloadFailure extends Failure {
+  const DownloadFailure(super.message);
+}
+
 class ModelResponseFailure extends Failure {
   const ModelResponseFailure(super.message);
 }

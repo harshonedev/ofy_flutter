@@ -4,19 +4,17 @@ import 'package:llm_cpp_chat_app/core/error/failures.dart';
 import 'package:llm_cpp_chat_app/core/usecases/usecase.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
 
-class DownloadModel implements UseCase<void, Params> {
+class DownloadModelUsecase implements UseCase<void, Params> {
   final DownloadRepository repository;
 
-  DownloadModel(this.repository);
+  DownloadModelUsecase(this.repository);
 
   @override
   Future<Either<Failure, String?>> call(Params params) async {
-    try {
-      final taskId = await repository.downloadModel(params.modelFileUrl, params.modelFileName);
-      return Right(taskId);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
+    return await repository.downloadModel(
+      params.modelFileUrl,
+      params.modelFileName,
+    );
   }
 }
 

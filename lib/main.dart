@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
 import 'package:llm_cpp_chat_app/features/settings/presentation/bloc/settings_event.dart';
 
 import 'core/di/injection_container.dart' as di;
@@ -16,9 +17,9 @@ void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-
   await FlutterDownloader.initialize(debug: true);
-    // Initialize dependency injection
+
+  // Initialize dependency injection
   await di.init();
 
   runApp(const MainApp());
@@ -35,6 +36,7 @@ class MainApp extends StatelessWidget {
         BlocProvider<DownloadManagerBloc>(
           create: (_) => di.sl<DownloadManagerBloc>(),
         ),
+        BlocProvider<ModelsBloc>(create: (_) => di.sl<ModelsBloc>()),
         BlocProvider(
           create: (context) => di.sl<SettingsBloc>()..add(GetSettingsEvent()),
         ),
@@ -58,3 +60,4 @@ class MainApp extends StatelessWidget {
     );
   }
 }
+

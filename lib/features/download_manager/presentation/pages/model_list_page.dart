@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_event.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_state.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/pages/model_details_page.dart';
 
 class ModelListPage extends StatefulWidget {
@@ -18,7 +16,7 @@ class _ModelListPageState extends State<ModelListPage> {
   void initState() {
     super.initState();
     // Load models when page is initialized
-    BlocProvider.of<DownloadManagerBloc>(context).add(LoadModelsEvent());
+    BlocProvider.of<ModelsBloc>(context).add(LoadModelsEvent());
   }
 
   @override
@@ -30,13 +28,13 @@ class _ModelListPageState extends State<ModelListPage> {
         title: const Text('GGUF Models'),
         scrolledUnderElevation: 2,
       ),
-      body: BlocBuilder<DownloadManagerBloc, DownloadManagerState>(
+      body: BlocBuilder<ModelsBloc, ModelsState>(
         buildWhen: (previous, current) {
           // Only rebuild when the state changes to LoadingModelsState,
           // LoadedModelsState, or ErrorState
           return current is LoadingModelsState ||
               current is LoadedModelsState ||
-              current is ErrorState;
+              current is ModelsErrorState;
         },
         builder: (context, state) {
           if (state is LoadingModelsState) {
@@ -45,7 +43,7 @@ class _ModelListPageState extends State<ModelListPage> {
             );
           } else if (state is LoadedModelsState) {
             return _buildModelList(context, state.models);
-          } else if (state is ErrorState) {
+          } else if (state is ModelsErrorState) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -66,7 +64,7 @@ class _ModelListPageState extends State<ModelListPage> {
                     const SizedBox(height: 24),
                     FilledButton.icon(
                       onPressed: () {
-                        BlocProvider.of<DownloadManagerBloc>(
+                        BlocProvider.of<ModelsBloc>(
                           context,
                         ).add(LoadModelsEvent());
                       },
@@ -95,7 +93,7 @@ class _ModelListPageState extends State<ModelListPage> {
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed:
-                      () => BlocProvider.of<DownloadManagerBloc>(
+                      () => BlocProvider.of<ModelsBloc>(
                         context,
                       ).add(LoadModelsEvent()),
                   child: Text(
@@ -152,6 +150,7 @@ class _ModelListPageState extends State<ModelListPage> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => ModelDetailsPage(modelId: model.id),
+                  settings: const RouteSettings(name: 'ModelDetailsPage'),
                 ),
               );
             },

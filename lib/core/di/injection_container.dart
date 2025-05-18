@@ -5,11 +5,18 @@ import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/down
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugging_face_api.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/repository/download_repository_impl.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/download_model.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/cancel_download.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/download_model_usecase.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_active_downloads.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_available_models.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_file_size.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_gguf_models.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_model_details.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/pause_download.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/remove_model.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/resume_download.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
 import 'package:llm_cpp_chat_app/features/settings/domain/usecases/get_api_key.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -143,18 +150,35 @@ Future<void> init() async {
   // Download Manager
   sl.registerLazySingleton(
     () => DownloadManagerBloc(
+      downloadModel: sl(),
+      cancelDownload: sl(),
+      pauseDownload: sl(),
+      resumeDownload: sl(),
+      getActiveDownloads: sl(),
+      getAvailableModels: sl(),
+      removeModel: sl(),
+    ),
+  );
+  // Models Bloc
+  sl.registerFactory(
+    () => ModelsBloc(
       getGGUFModels: sl(),
       getModelDetails: sl(),
-      downloadModel: sl(),
-      getFileSizeUseCase: sl(),
+      getFileSize: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => GetGGUFModels(sl()));
   sl.registerLazySingleton(() => GetModelDetails(sl()));
-  sl.registerLazySingleton(() => DownloadModel(sl()));
+  sl.registerLazySingleton(() => DownloadModelUsecase(sl()));
   sl.registerLazySingleton(() => GetFileSizeUseCase(sl()));
+  sl.registerLazySingleton(() => CancelDownload(sl()));
+  sl.registerLazySingleton(() => PauseDownload(sl()));
+  sl.registerLazySingleton(() => ResumeDownload(sl()));
+  sl.registerLazySingleton(() => GetActiveDownloads(sl()));
+  sl.registerLazySingleton(() => GetAvailableModels(sl()));
+  sl.registerLazySingleton(() => RemoveModel(sl()));
 
   // Repository
   sl.registerLazySingleton<DownloadRepository>(

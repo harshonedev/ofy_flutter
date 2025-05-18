@@ -1,13 +1,19 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:llm_cpp_chat_app/core/constants/app_constants.dart';
 import 'package:llm_cpp_chat_app/core/error/exceptions.dart';
 import 'package:llm_cpp_chat_app/core/error/failures.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/download_service.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugging_face_api.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/data/models/download_model_data.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/download_model.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/file_size_details.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_details.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_file.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
 import 'package:logger/web.dart';
 
@@ -16,31 +22,51 @@ class DownloadRepositoryImpl implements DownloadRepository {
   final DownloadService downloadService;
   final Logger logger = Logger();
 
-  DownloadRepositoryImpl({required this.huggingFaceApi, required this.downloadService});
+  DownloadRepositoryImpl({
+    required this.huggingFaceApi,
+    required this.downloadService,
+  });
   @override
-  Future<void> cancelDownload(String taskId) async {
+  Future<Either<Failure, void>> cancelDownload(String taskId) async {
     try {
       await downloadService.cancelDownload(taskId);
       logger.i('Download cancelled');
+      return const Right(null);
     } catch (e) {
       logger.e('Error cancelling download: $e');
-      throw Exception('Failed to cancel download');
+      return const Left(DownloadFailure('Failed to cancel download'));
     }
   }
 
   @override
-  Future<String?> downloadModel(String fileUrl, String fileName) async{
+  Future<Either<Failure, String>> downloadModel(
+    String fileUrl,
+    String fileName,
+  ) async {
     try {
-      return await downloadService.downloadFile(
-        fileUrl,
-        fileName,
-      );
+      // if file already exists
+      final file = File("${AppConstants.defaultDownloadPath}/$fileName");
+      if (await file.exists()) {
+        logger.i('File already exists: $fileName');
+        return const Left(
+          DownloadFailure(
+            'File already exists in ${AppConstants.defaultDownloadPath}',
+          ),
+        );
+      }
+      final taskId = await downloadService.downloadFile(fileUrl, fileName);
+      if (taskId != null) {
+        logger.i('Download started: $taskId');
+        return Right(taskId);
+      } else {
+        logger.e('Failed to start download');
+        return const Left(DownloadFailure('Failed to start download'));
+      }
     } catch (e) {
       logger.e('Error downloading model: $e');
-      throw Exception('Failed to download model');
+      return const Left(DownloadFailure('Failed to download model'));
     }
   }
-
 
   @override
   Future<Either<Failure, List<Model>>> getGGUFModels() async {
@@ -89,23 +115,29 @@ class DownloadRepositoryImpl implements DownloadRepository {
       return '$sizeInBytes bytes';
     }
   }
-  
+
   @override
-  Stream<Either<Failure, FileSizeDetails>> getFileSize(List<FileDetails> files) async* {
+  Stream<Either<Failure, FileSizeDetails>> getFileSize(
+    List<FileDetails> files,
+  ) async* {
     try {
       for (var file in files) {
         final fileSize = await huggingFaceApi.getFileSize(file.downloadUrl);
         if (fileSize != null) {
           final formattedSize = _calculateFileSize(fileSize);
-          yield Right(FileSizeDetails(
-            formattedSize: formattedSize,
-            fileIndex: files.indexOf(file)
-          ));
+          yield Right(
+            FileSizeDetails(
+              formattedSize: formattedSize,
+              fileIndex: files.indexOf(file),
+            ),
+          );
         } else {
-          yield Right(FileSizeDetails(
-            formattedSize: "File size not available",
-            fileIndex: files.indexOf(file)
-          ));
+          yield Right(
+            FileSizeDetails(
+              formattedSize: "File size not available",
+              fileIndex: files.indexOf(file),
+            ),
+          );
         }
       }
     } on ServerException catch (e) {
@@ -116,24 +148,95 @@ class DownloadRepositoryImpl implements DownloadRepository {
       yield const Left(ServerFailure("Failed to get file size"));
     }
   }
-  
+
   @override
-  Future<void> pauseDownload(String taskId) {
+  Future<Either<Failure, void>> pauseDownload(String taskId) async {
     try {
-      return downloadService.pauseDownload(taskId);
+      await downloadService.pauseDownload(taskId);
+      return const Right(null);
     } catch (e) {
       logger.e('Error pausing download: $e');
-      throw Exception('Failed to pause download');
+      return const Left(DownloadFailure('Failed to pause download'));
     }
   }
-  
+
   @override
-  Future<String?> resumeDownload(String taskId) {
+  Future<Either<Failure, String>> resumeDownload(String taskId) async {
     try {
-      return downloadService.resumeDownload(taskId);
+      final newTaskId = await downloadService.resumeDownload(taskId);
+      if (newTaskId != null) {
+        logger.i('Download resumed: $newTaskId');
+        return Right(newTaskId);
+      } else {
+        logger.e('Failed to resume download');
+        return const Left(DownloadFailure('Failed to resume download'));
+      }
     } catch (e) {
       logger.e('Error resuming download: $e');
-      throw Exception('Failed to resume download');
+      return const Left(DownloadFailure('Failed to resume download'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<DownloadModel>>> getActiveDownloads() async {
+    try {
+      final tasks = await downloadService.loadDownlaods();
+      if (tasks == null || tasks.isEmpty) {
+        return const Right([]);
+      }
+      final downloadModels =
+          tasks.map((task) {
+            return DownloadModelData.fromDownloadTask(task);
+          }).toList();
+      return Right(downloadModels);
+    } catch (e) {
+      logger.e('Error getting active downloads: $e');
+      return const Left(DownloadFailure('Failed to get active downloads'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ModelFile>>> getAvailableModels() async {
+    try {
+      final tasks = await downloadService.loadDownlaods();
+      if (tasks == null || tasks.isEmpty) {
+        return const Right([]);
+      }
+      final downloadedTasks =
+          tasks.where((task) {
+            return task.status == DownloadTaskStatus.complete;
+          }).toList();
+      List<ModelFile> modelFiles = [];
+      for (var task in downloadedTasks) {
+        final filePath = "${task.savedDir}/${task.filename}";
+        final file = File(filePath);
+        if (await file.exists()) {
+          final fileSize = await file.length();
+          final modelFile = ModelFile(
+            taskId: task.taskId,
+            fileName: task.filename ?? 'Unknown',
+            filePath: filePath,
+            fileSize: _calculateFileSize(fileSize),
+          );
+          modelFiles.add(modelFile);
+        }
+      }
+      return Right(modelFiles);
+    } catch (e) {
+      logger.e('Error getting available models: $e');
+      return const Left(DownloadFailure('Failed to get available models'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteDownload(String taskId) async {
+    try {
+      await downloadService.deleteDownload(taskId);
+      logger.i('Download deleted');
+      return const Right(null);
+    } catch (e) {
+      logger.e('Error deleting download: $e');
+      return const Left(DownloadFailure('Failed to delete download'));
     }
   }
 }

@@ -5,6 +5,8 @@ import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_event.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_state.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/pages/download_manager_page.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/widgets/download_button.dart';
 
 class ModelDetailsPage extends StatefulWidget {
@@ -17,13 +19,27 @@ class ModelDetailsPage extends StatefulWidget {
 }
 
 class _ModelDetailsPageState extends State<ModelDetailsPage> {
+  bool _isDownloadProcessing = false;
+
   @override
   void initState() {
     super.initState();
     // Load model details when page is initialized
-    BlocProvider.of<DownloadManagerBloc>(
+    BlocProvider.of<ModelsBloc>(
       context,
     ).add(LoadModelDetailsEvent(widget.modelId));
+  }
+
+  void _navigateToDownloads() {
+    // Go to downloads page and clear model pages from stack
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const DownloadManager()),
+      // Remove all pages until we reach something that's not ModelListPage or ModelDetailsPage
+      (route) =>
+          route.settings.name != null &&
+          !route.settings.name!.contains('ModelListPage') &&
+          !route.settings.name!.contains('ModelDetailsPage'),
+    );
   }
 
   @override
@@ -32,9 +48,9 @@ class _ModelDetailsPageState extends State<ModelDetailsPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.modelId), scrolledUnderElevation: 2),
-      body: BlocConsumer<DownloadManagerBloc, DownloadManagerState>(
+      body: BlocListener<DownloadManagerBloc, DownloadManagerState>(
         listener: (context, state) {
-          if (state is FileSizeErrorState) {
+          if (state is DownloadErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Error: ${state.message}'),
@@ -42,171 +58,122 @@ class _ModelDetailsPageState extends State<ModelDetailsPage> {
               ),
             );
           }
-        },
-        buildWhen: (previous, current) {
-          // Only rebuild when the state changes to LoadingModelDetailsState,
-          // LoadedModelDetailsState, ErrorState, DownloadingModelState,
-          // or DownloadCompletedState
-          return current is LoadingModelDetailsState ||
-              current is LoadedModelDetailsState ||
-              current is ErrorState ||
-              current is DownloadingModelState ||
-              current is DownloadCompletedState;
-        },
-        builder: (context, state) {
-          if (state is LoadingModelDetailsState) {
-            return Center(
-              child: CircularProgressIndicator(color: colorScheme.primary),
-            );
-          } else if (state is LoadedModelDetailsState) {
-            return _buildModelDetails(context, state.model);
-          } else if (state is ErrorState) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      color: colorScheme.error,
-                      size: 64,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error: ${state.message}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: () {
-                        BlocProvider.of<DownloadManagerBloc>(
-                          context,
-                        ).add(LoadModelDetailsEvent(widget.modelId));
-                      },
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Try Again'),
-                    ),
-                  ],
+          if (state is DownloadCompletedState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Download completed'),
+                backgroundColor: colorScheme.primary,
+                action: SnackBarAction(
+                  label: "See",
+                  onPressed: () {
+                    // Handle action
+                    _navigateToDownloads();
+                  },
                 ),
               ),
             );
-          } else if (state is DownloadingModelState) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: CircularProgressIndicator(
-                            value:
-                                state.progress > 0
-                                    ? state.progress / 100
-                                    : null,
-                            strokeWidth: 6,
-                            backgroundColor: colorScheme.surfaceVariant,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        Text(
-                          '${state.progress.toInt()}%',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Downloading Model',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Please wait while we download the model file',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.error,
-                        side: BorderSide(color: colorScheme.error),
+          }
+
+          if (state is DownloadStartedState) {
+            setState(() {
+              _isDownloadProcessing = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Downloading...'),
+                action: SnackBarAction(
+                  label: "See",
+                  onPressed: () {
+                    // Handle action
+                    _navigateToDownloads();
+                  },
+                ),
+              ),
+            );
+          }
+          if (state is DownloadProcessingState) {
+            setState(() {
+              _isDownloadProcessing = true;
+            });
+          }
+        },
+        child: BlocConsumer<ModelsBloc, ModelsState>(
+          listener: (context, state) {
+            if (state is FileSizeErrorState) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: ${state.message}'),
+                  backgroundColor: colorScheme.error,
+                ),
+              );
+            }
+          },
+          buildWhen: (previous, current) {
+            // Only rebuild when the state changes to LoadingModelDetailsState,
+            // LoadedModelDetailsState, ErrorState
+            return current is LoadingModelDetailsState ||
+                current is LoadedModelDetailsState ||
+                current is ModelsErrorState;
+          },
+          builder: (context, state) {
+            if (state is LoadingModelDetailsState) {
+              return Center(
+                child: CircularProgressIndicator(color: colorScheme.primary),
+              );
+            } else if (state is LoadedModelDetailsState) {
+              return _buildModelDetails(context, state.model);
+            } else if (state is ModelsErrorState) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        color: colorScheme.error,
+                        size: 64,
                       ),
-                      onPressed: () {
-                        BlocProvider.of<DownloadManagerBloc>(
-                          context,
-                        ).add(CancelDownloadEvent());
-                      },
-                      icon: const Icon(Icons.cancel_rounded),
-                      label: const Text('Cancel Download'),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error: ${state.message}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: () {
+                          BlocProvider.of<ModelsBloc>(
+                            context,
+                          ).add(LoadModelDetailsEvent(widget.modelId));
+                        },
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          } else if (state is DownloadCompletedState) {
+              );
+            }
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_circle_rounded,
-                      color: colorScheme.onPrimaryContainer,
-                      size: 64,
-                    ),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 64,
+                    color: colorScheme.secondary,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Text(
-                    'Download Completed',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your model is ready to use',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 32),
-                  FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    label: const Text('Back to Models'),
+                    'Model details not available',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ],
               ),
             );
-          }
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  size: 64,
-                  color: colorScheme.secondary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Model details not available',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -355,12 +322,14 @@ class _ModelDetailsPageState extends State<ModelDetailsPage> {
                         fileName: fileDetails.fileName,
                         onPressed: () {
                           // Trigger download
-                          BlocProvider.of<DownloadManagerBloc>(context).add(
-                            DownloadModelEvent(
-                              fileDetails.fileName,
-                              fileDetails.downloadUrl,
-                            ),
-                          );
+                          if (!_isDownloadProcessing) {
+                            BlocProvider.of<DownloadManagerBloc>(context).add(
+                              DownloadModelEvent(
+                                fileDetails.fileName,
+                                fileDetails.downloadUrl,
+                              ),
+                            );
+                          }
                         },
                       ),
                     ],

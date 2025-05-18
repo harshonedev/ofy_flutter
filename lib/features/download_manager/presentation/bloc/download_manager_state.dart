@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_details.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/download_model.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_file.dart';
 
 abstract class DownloadManagerState extends Equatable {
   const DownloadManagerState();
@@ -11,39 +11,25 @@ abstract class DownloadManagerState extends Equatable {
 
 class InitialDownloadManagerState extends DownloadManagerState {}
 
-class LoadingModelsState extends DownloadManagerState {}
-
-class LoadedModelsState extends DownloadManagerState {
-  final List<Model> models;
-
-  const LoadedModelsState(this.models);
-
-  @override
-  List<Object> get props => [models];
-}
-
-class LoadingModelDetailsState extends DownloadManagerState {}
-
-class LoadedModelDetailsState extends DownloadManagerState {
-  final ModelDetails model;
-
-  const LoadedModelDetailsState(this.model);
-
-  @override
-  List<Object> get props => [model];
-}
-
 class DownloadingModelState extends DownloadManagerState {
-  final String taskId;
-  final int progress;
+  final DownloadModel downloadModel;
 
-  const DownloadingModelState(this.progress, this.taskId);
+  const DownloadingModelState(this.downloadModel);
 
   @override
-  List<Object> get props => [progress];
+  List<Object> get props => [downloadModel];
 }
 
 class DownloadCompletedState extends DownloadManagerState {}
+
+class DownloadCancelledState extends DownloadManagerState {
+  final String taskId;
+
+  const DownloadCancelledState(this.taskId);
+
+  @override
+  List<Object> get props => [taskId];
+}
 
 class DownloadErrorState extends DownloadManagerState {
   final String message;
@@ -54,29 +40,19 @@ class DownloadErrorState extends DownloadManagerState {
   List<Object> get props => [message];
 }
 
-class ErrorState extends DownloadManagerState {
-  final String message;
+class LoadingDownloadedModelsState extends DownloadManagerState {}
 
-  const ErrorState(this.message);
+class LoadedDownloadedModelsState extends DownloadManagerState {
+  final List<ModelFile> modelFiles;
 
-  @override
-  List<Object> get props => [message];
-}
-
-class FileSizeFetchedState extends DownloadManagerState {
-  final List<FileDetails> files;
-
-  const FileSizeFetchedState(this.files);
+  const LoadedDownloadedModelsState(this.modelFiles);
 
   @override
-  List<Object> get props => [files];
+  List<Object> get props => [modelFiles];
 }
 
-class FileSizeErrorState extends DownloadManagerState {
-  final String message;
+class LoadingActiveDownloadsState extends DownloadManagerState {}
 
-  const FileSizeErrorState(this.message);
+class DownloadProcessingState extends DownloadManagerState {}
 
-  @override
-  List<Object> get props => [message];
-}
+class DownloadStartedState extends DownloadManagerState {}
