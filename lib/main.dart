@@ -5,6 +5,7 @@ import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
 import 'package:llm_cpp_chat_app/features/settings/presentation/bloc/settings_event.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
@@ -12,6 +13,7 @@ import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/model_picker/presentation/bloc/model_picker_bloc.dart';
 import 'features/model_picker/presentation/bloc/model_picker_event.dart';
 import 'features/settings/presentation/bloc/settings_bloc.dart';
+import 'features/onboarding/presentation/pages/onboarding_page.dart';
 
 void main() async {
   // Ensure Flutter is initialized
@@ -27,6 +29,11 @@ void main() async {
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
+
+  Future<bool> _isOnboardingComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('onboarding_complete') ?? false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,15 +56,26 @@ class MainApp extends StatelessWidget {
           },
         ),
       ],
-      child: MaterialApp(
-        title: 'OfflineAI',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.system,
-        home: const ChatPage(),
+      child: FutureBuilder<bool>(
+        future: _isOnboardingComplete(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const MaterialApp(
+              home: Scaffold(body: Center(child: CircularProgressIndicator())),
+            );
+          }
+          final onboardingComplete = snapshot.data!;
+          return MaterialApp(
+            title: 'OfflineAI',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            debugShowCheckedModeBanner: false,
+            themeMode: ThemeMode.system,
+            home:
+                onboardingComplete ? const ChatPage() : const OnboardingPage(),
+          );
+        },
       ),
     );
   }
 }
-
