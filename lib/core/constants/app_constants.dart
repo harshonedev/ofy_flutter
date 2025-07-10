@@ -14,11 +14,12 @@ class AppConstants {
       'Failed to load model. Please try again with a different model file.';
 
   // UI Text
-  static const String pickModelButtonText = 'Select Model File';
+  static const String pickModelButtonText =
+      'Select Model File from Local Storage';
   static const String chatScreenTitle = 'Chat with LLM';
   static const String messageHint = 'Type your message...';
   static const String sendButtonText = 'Send';
-  static const String selectFromDownloadButtonText = 'Select from Downloads';
+  static const String selectFromDownloadButtonText = 'Download Models';
 
   //BASE URL of the API
   static const String openAiBaseUrl =

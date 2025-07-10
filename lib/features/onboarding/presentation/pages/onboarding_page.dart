@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
+import 'package:llm_cpp_chat_app/features/model_picker/presentation/pages/model_picker_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -126,7 +126,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         await prefs.setBool('onboarding_complete', true);
                         if (!mounted) return;
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const ChatPage()),
+                          MaterialPageRoute(
+                            builder: (_) => const ModelPickerPage(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(

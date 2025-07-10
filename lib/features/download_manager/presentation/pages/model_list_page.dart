@@ -12,11 +12,19 @@ class ModelListPage extends StatefulWidget {
 }
 
 class _ModelListPageState extends State<ModelListPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   @override
   void initState() {
     super.initState();
     // Load models when page is initialized
     BlocProvider.of<ModelsBloc>(context).add(LoadModelsEvent());
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -42,7 +50,52 @@ class _ModelListPageState extends State<ModelListPage> {
               child: CircularProgressIndicator(color: colorScheme.primary),
             );
           } else if (state is LoadedModelsState) {
-            return _buildModelList(context, state.models);
+            // Filter models based on search query
+            final filteredModels =
+                state.models.where((model) {
+                  final query = _searchQuery.toLowerCase();
+                  return model.id.toLowerCase().contains(query) ||
+                      (model.pipeline?.toLowerCase().contains(query) ?? false);
+                }).toList();
+            return Column(
+              children: [
+                // Search bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search models...',
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceVariant.withOpacity(0.4),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                    ),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Expanded(child: _buildModelList(context, filteredModels)),
+              ],
+            );
           } else if (state is ModelsErrorState) {
             return Center(
               child: Padding(
