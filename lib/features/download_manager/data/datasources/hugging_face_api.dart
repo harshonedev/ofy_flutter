@@ -29,7 +29,11 @@ class HuggingFaceApiImpl implements HuggingFaceApi {
         final List<dynamic> jsonResponse = response.data;
         logger.d('GGUF Models: $jsonResponse');
         return jsonResponse
-            .where((model) => model['private'] == false)
+            .where(
+              (model) =>
+                  model['private'] == false &&
+                  model['pipeline_tag'] == 'text-generation',
+            )
             .map((model) => ModelData.fromJson(model))
             .toList();
       } else {

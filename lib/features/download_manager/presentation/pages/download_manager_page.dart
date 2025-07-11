@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_event.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_details.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_event.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_state.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/pages/model_list_page.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/presentation/widgets/download_button.dart';
 import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_bloc.dart';
 import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_event.dart';
 import 'package:llm_cpp_chat_app/features/model_picker/presentation/bloc/model_picker_state.dart';
@@ -18,6 +20,33 @@ class DownloadManager extends StatefulWidget {
 }
 
 class _DownloadManagerState extends State<DownloadManager> {
+  final List<FileDetails> _recommendedModels = [
+    const FileDetails(
+      fileName: 'qwen2.5-1.5b-instruct-q3_k_m.gguf',
+      fileSize: '881.63 MB',
+      downloadUrl:
+          'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q3_k_m.gguf',
+    ),
+    const FileDetails(
+      fileName: 'gemma-3-1b-it-Q6_K.gguf',
+      fileSize: '1 GB',
+      downloadUrl:
+          'https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q6_K.gguf',
+    ),
+    const FileDetails(
+      fileName: 'Llama-3.2-3B-Instruct-Q2_K.gguf',
+      fileSize: '1.3 GB',
+      downloadUrl:
+          'https://huggingface.co/unsloth/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q2_K.gguf',
+    ),
+    const FileDetails(
+      fileName: 'mistral-7b-instruct-v0.1.Q2_K.gguf',
+      fileSize: '2.87 GB',
+      downloadUrl:
+          'https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q2_K.gguf',
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -41,19 +70,49 @@ class _DownloadManagerState extends State<DownloadManager> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Active Downloads Section
-                _buildActiveSectionHeader(context, 'Active Downloads'),
-                const SizedBox(height: 12),
-                _buildActiveDownloads(context),
+            child: BlocListener<DownloadManagerBloc, DownloadManagerState>(
+              listener: (context, state) {
+                if (state is DownloadErrorState) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${state.message}'),
+                      backgroundColor: colorScheme.error,
+                    ),
+                  );
+                }
+                if (state is DownloadCompletedState) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Download completed'),
+                      backgroundColor: colorScheme.primary,
+                    ),
+                  );
+                }
 
-                const SizedBox(height: 32),
+                if (state is DownloadStartedState) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Downloading...')),
+                  );
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Active Downloads Section
+                  _buildActiveSectionHeader(context, 'Active Downloads'),
+                  const SizedBox(height: 12),
+                  _buildActiveDownloads(context),
 
-                // Available Models Section
-                _buildAvailableModelsSection(context),
-              ],
+                  const SizedBox(height: 32),
+
+                  // Available Models Section
+                  _buildAvailableModelsSection(context),
+
+                  const SizedBox(height: 32),
+
+                  _buildRecommendedModelsSection(context),
+                ],
+              ),
             ),
           ),
         ),
@@ -402,6 +461,94 @@ class _DownloadManagerState extends State<DownloadManager> {
     );
   }
 
+  Widget _buildRecommendedModelsSection(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.star_rounded,
+                color: colorScheme.onTertiaryContainer,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Recommended Models',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ..._recommendedModels.map((fileDetails) {
+          return Card(
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 12.0),
+            color: colorScheme.surfaceVariant.withOpacity(0.4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.description_rounded,
+                      color: colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fileDetails.fileName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'File size: ${fileDetails.fileSize}',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  DownloadButton(
+                    fileName: fileDetails.fileName,
+                    onPressed: () {
+                      BlocProvider.of<DownloadManagerBloc>(context).add(
+                        DownloadModelEvent(
+                          fileDetails.fileName,
+                          fileDetails.downloadUrl,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
   Widget _buildCompletedDownloads(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     int selectedModelIndex = -1;
@@ -409,14 +556,13 @@ class _DownloadManagerState extends State<DownloadManager> {
     return BlocListener<ModelPickerBloc, ModelPickerState>(
       listener: (context, state) {
         if (state is ModelPickerLoaded &&
-              state.saveSuccess == true &&
-              state.modelPath != null) {
-            // Initialize Chat BLoC with selected model path
-            context.read<ChatBloc>().add(
-              InitializeModelEvent(modelPath: state.modelPath!),
-            );
-
-          }
+            state.saveSuccess == true &&
+            state.modelPath != null) {
+          // Initialize Chat BLoC with selected model path
+          context.read<ChatBloc>().add(
+            InitializeModelEvent(modelPath: state.modelPath!),
+          );
+        }
       },
       child: BlocBuilder<DownloadManagerBloc, DownloadManagerState>(
         buildWhen: (previous, current) {
@@ -450,7 +596,7 @@ class _DownloadManagerState extends State<DownloadManager> {
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content:  Text('Model selected'),
+                          content: Text('Model selected'),
                           duration: Duration(seconds: 2),
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -536,7 +682,9 @@ class _DownloadManagerState extends State<DownloadManager> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const ModelListPage(),
-                            settings: const RouteSettings(name: 'ModelListPage'),
+                            settings: const RouteSettings(
+                              name: 'ModelListPage',
+                            ),
                           ),
                         );
                       },

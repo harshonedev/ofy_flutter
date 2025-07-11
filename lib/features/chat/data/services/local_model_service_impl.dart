@@ -43,7 +43,7 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
       _llama = Llama(
         LlamaController(
           modelPath: modelPath,
-          nCtx: 2048,
+          nCtx: 1024,
           nBatch: 512,
           seed: math.Random().nextInt(1000000),
           greedy: false,
