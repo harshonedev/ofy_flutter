@@ -62,7 +62,7 @@ class _DownloadManagerState extends State<DownloadManager> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Downloads'),
+        title: const Text('Browse Models'),
         scrolledUnderElevation: 2,
         shadowColor: colorScheme.shadow.withOpacity(0.2),
       ),

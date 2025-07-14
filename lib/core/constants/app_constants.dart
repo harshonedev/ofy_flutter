@@ -19,7 +19,7 @@ class AppConstants {
   static const String chatScreenTitle = 'Chat with LLM';
   static const String messageHint = 'Type your message...';
   static const String sendButtonText = 'Send';
-  static const String selectFromDownloadButtonText = 'Download Models';
+  static const String selectFromDownloadButtonText = 'Browse Other Models';
 
   //BASE URL of the API
   static const String openAiBaseUrl =
