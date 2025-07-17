@@ -6,6 +6,7 @@ import 'package:background_downloader/background_downloader.dart'
 import 'package:dartz/dartz.dart';
 import 'package:llm_cpp_chat_app/core/error/exceptions.dart';
 import 'package:llm_cpp_chat_app/core/error/failures.dart';
+import 'package:llm_cpp_chat_app/core/utils/model_utils.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/download_service.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/hugging_face_api.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/models/download_model_data.dart';
@@ -105,26 +106,6 @@ class DownloadRepositoryImpl implements DownloadRepository {
     }
   }
 
-  String _calculateFileSize(int sizeInBytes) {
-    // Convert bytes to KB, MB, GB, etc.
-    if (sizeInBytes >= 1024 * 1024 * 1024) {
-      final sizeInGB = sizeInBytes / (1024 * 1024 * 1024);
-      logger.d('File size: ${sizeInGB.toStringAsFixed(2)} GB');
-      return '${sizeInGB.toStringAsFixed(2)} GB';
-    } else if (sizeInBytes >= 1024 * 1024) {
-      final sizeInMB = sizeInBytes / (1024 * 1024);
-      logger.d('File size: ${sizeInMB.toStringAsFixed(2)} MB');
-      return '${sizeInMB.toStringAsFixed(2)} MB';
-    } else if (sizeInBytes >= 1024) {
-      final sizeInKB = sizeInBytes / 1024;
-      logger.d('File size: ${sizeInKB.toStringAsFixed(2)} KB');
-      return '${sizeInKB.toStringAsFixed(2)} KB';
-    } else {
-      logger.d('File size: $sizeInBytes bytes');
-      return '$sizeInBytes bytes';
-    }
-  }
-
   @override
   Stream<Either<Failure, FileSizeDetails>> getFileSize(
     List<FileDetails> files,
@@ -133,7 +114,7 @@ class DownloadRepositoryImpl implements DownloadRepository {
       for (var file in files) {
         final fileSize = await huggingFaceApi.getFileSize(file.downloadUrl);
         if (fileSize != null) {
-          final formattedSize = _calculateFileSize(fileSize);
+          final formattedSize = ModelUtils.calculateFileSize(fileSize);
           yield Right(
             FileSizeDetails(
               formattedSize: formattedSize,
@@ -210,7 +191,12 @@ class DownloadRepositoryImpl implements DownloadRepository {
                 ).copyWith(
                   progress: (record.progress * 100).round(),
                   status: record.status.toString(),
-                  expectedFileSize: _calculateFileSize(record.expectedFileSize),
+                  expectedFileSize:
+                      record.expectedFileSize > 0
+                          ? ModelUtils.calculateFileSize(
+                            record.expectedFileSize,
+                          )
+                          : 'Unknown',
                   isPaused: record.status == file_downloader.TaskStatus.paused,
                 );
                 logger.i(
@@ -247,7 +233,7 @@ class DownloadRepositoryImpl implements DownloadRepository {
         final file = File(filePath);
         String fileSize = 'Unknown';
         if (file.existsSync()) {
-          fileSize = _calculateFileSize(file.lengthSync());
+          fileSize = ModelUtils.calculateFileSize(file.lengthSync());
         } else {
           logger.w('File does not exist: $filePath');
         }

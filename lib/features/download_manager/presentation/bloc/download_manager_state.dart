@@ -9,7 +9,9 @@ abstract class DownloadManagerState extends Equatable {
   List<Object?> get props => [];
 }
 
-class InitialDownloadManagerState extends DownloadManagerState {}
+class InitialDownloadManagerState extends DownloadManagerState {
+  const InitialDownloadManagerState();
+}
 
 class DownloadingModelState extends DownloadManagerState {
   final DownloadModel downloadModel;
@@ -35,10 +37,12 @@ class DownloadingModelState extends DownloadManagerState {
   }
 
   @override
-  List<Object> get props => [downloadModel];
+  List<Object?> get props => [downloadModel, isStopping, error];
 }
 
-class DownloadCompletedState extends DownloadManagerState {}
+class DownloadCompletedState extends DownloadManagerState {
+  const DownloadCompletedState();
+}
 
 class DownloadCancelledState extends DownloadManagerState {
   final String taskId;
@@ -58,7 +62,9 @@ class DownloadErrorState extends DownloadManagerState {
   List<Object> get props => [message];
 }
 
-class LoadingDownloadedModelsState extends DownloadManagerState {}
+class LoadingDownloadedModelsState extends DownloadManagerState {
+  const LoadingDownloadedModelsState();
+}
 
 class LoadedDownloadedModelsState extends DownloadManagerState {
   final List<ModelFile> modelFiles;
@@ -69,8 +75,14 @@ class LoadedDownloadedModelsState extends DownloadManagerState {
   List<Object> get props => [modelFiles];
 }
 
-class LoadingActiveDownloadsState extends DownloadManagerState {}
+class LoadingActiveDownloadsState extends DownloadManagerState {
+  const LoadingActiveDownloadsState();
+}
 
-class DownloadProcessingState extends DownloadManagerState {}
+class DownloadProcessingState extends DownloadManagerState {
+  const DownloadProcessingState();
+}
 
-class DownloadStartedState extends DownloadManagerState {}
+class DownloadStartedState extends DownloadManagerState {
+  const DownloadStartedState();
+}

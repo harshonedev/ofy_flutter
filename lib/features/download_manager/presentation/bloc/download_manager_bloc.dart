@@ -11,38 +11,75 @@ import 'package:logger/logger.dart';
 class DownloadManagerBloc
     extends Bloc<DownloadManagerEvent, DownloadManagerState> {
   final DownloadRepository downloadRepository;
+  final Logger _logger = Logger();
 
-  final Logger logger = Logger();
+  // Stream subscriptions for proper disposal
+  late final StreamSubscription _progressSubscription;
+  late final StreamSubscription _statusSubscription;
+
+  // Flags to prevent duplicate operations
+  bool _isPauseResumeInProgress = false;
+  bool _isCancelInProgress = false;
 
   DownloadManagerBloc({required this.downloadRepository})
-    : super(InitialDownloadManagerState()) {
-    // start listening to download updates
-    downloadRepository.startListeningToDownloads();
-    // Listen to download progress updates
-    downloadRepository.downloadProgressStream().listen((progress) {
-      add(
-        _DownloadProgress(
-          progress.task,
-          (progress.progress * 100).round(),
-          networkSpeed: progress.networkSpeed,
-          timeRemaining: progress.timeRemaining,
-          expectedFileSize: progress.expectedFileSize,
-        ),
-      );
-    });
-
-    // Listen to download status updates
-    downloadRepository.downloadStatusStream().listen((status) {
-      if (status.status == TaskStatus.complete) {
-        add(_DownloadCompleted(status.task.taskId));
-      } else if (status.status == TaskStatus.failed) {
-        add(_DownloadFailedEvent(status.task.taskId, "Download failed"));
-      }
-    });
-
-    // start the file downloader
+    : super(const InitialDownloadManagerState()) {
+    _initializeSubscriptions();
+    _setupEventHandlers();
     downloadRepository.startFileDownloader();
+  }
 
+  void _initializeSubscriptions() {
+    downloadRepository.startListeningToDownloads();
+
+    // Listen to download progress updates with error handling
+    _progressSubscription = downloadRepository
+        .downloadProgressStream()
+        .handleError(_handleStreamError)
+        .listen(_handleProgressUpdate);
+
+    // Listen to download status updates with error handling
+    _statusSubscription = downloadRepository
+        .downloadStatusStream()
+        .handleError(_handleStreamError)
+        .listen(_handleStatusUpdate);
+  }
+
+  void _handleProgressUpdate(progress) {
+    add(
+      _DownloadProgress(
+        progress.task,
+        (progress.progress * 100).round(),
+        networkSpeed: progress.networkSpeed,
+        timeRemaining: progress.timeRemaining,
+        expectedFileSize: progress.expectedFileSize,
+      ),
+    );
+  }
+
+  void _handleStatusUpdate(status) {
+    switch (status.status) {
+      case TaskStatus.complete:
+        add(_DownloadCompleted(status.task.taskId));
+        break;
+      case TaskStatus.failed:
+        add(_DownloadFailedEvent(status.task.taskId, "Download failed"));
+        break;
+      case TaskStatus.canceled:
+      case TaskStatus.paused:
+      case TaskStatus.running:
+        add(_DownloadStatusUpdate(status.task, status.status));
+        break;
+      default:
+        _logger.w('Unhandled download status: ${status.status}');
+    }
+  }
+
+  void _handleStreamError(error) {
+    _logger.e('Stream error: $error');
+    add(_DownloadFailedEvent('', 'Stream error: $error'));
+  }
+
+  void _setupEventHandlers() {
     on<LoadActiveDownloadsEvent>(_onLoadActiveDownloads);
     on<DownloadModelEvent>(_onDownloadModel);
     on<CancelDownloadEvent>(_onCancelDownload);
@@ -53,30 +90,30 @@ class DownloadManagerBloc
 
     // Internal update
     on<_DownloadProgress>((event, emit) async {
-      logger.i(
+      _logger.i(
         "Download progress for task ${event.task.taskId}: ${event.progress}%",
       );
-      if (event.progress < 0) {
-        logger.e(
-          "Invalid progress value: ${event.progress} for task ${event.task.taskId}",
-        );
-        return; // Ignore invalid progress updates
-      }
       if (state is DownloadingModelState) {
         final currentState = state as DownloadingModelState;
-        logger.i(
+        _logger.i(
           "Current download model task ID: ${currentState.downloadModel.task.taskId}",
         );
         if (currentState.downloadModel.task.taskId != event.task.taskId) {
           return; // Ignore progress for other tasks
         }
         final downloadModel = currentState.downloadModel.copyWith(
-          progress: event.progress,
+          progress:
+              event.progress < 0
+                  ? currentState.downloadModel.progress
+                  : event.progress,
           status: TaskStatus.running.name,
           isPaused: false,
           networkSpeed: event.networkSpeed,
           timeRemaining: event.timeRemaining,
-          expectedFileSize: event.expectedFileSize,
+          expectedFileSize:
+              event.expectedFileSize == '-1 bytes'
+                  ? currentState.downloadModel.expectedFileSize
+                  : event.expectedFileSize,
         );
         emit(DownloadingModelState(downloadModel));
       } else {
@@ -100,30 +137,69 @@ class DownloadManagerBloc
       }
     });
 
+    on<_DownloadStatusUpdate>((event, emit) async {
+      _logger.i(
+        "Download status update for task ${event.task.taskId}: ${event.status}",
+      );
+      if (state is DownloadingModelState) {
+        final currentState = state as DownloadingModelState;
+        if (currentState.downloadModel.task.taskId != event.task.taskId) {
+          return; // Ignore status updates for other tasks
+        }
+        final downloadModel = currentState.downloadModel.copyWith(
+          status: event.status.name,
+          isPaused: event.status == TaskStatus.paused,
+        );
+        emit(DownloadingModelState(downloadModel));
+      } else {
+        final filePath = await event.task.filePath(
+          withFilename: event.task.filename,
+        );
+        emit(
+          DownloadingModelState(
+            DownloadModel(
+              task: event.task,
+              fileName: event.task.filename,
+              filePath: filePath,
+              status: event.status.name,
+              isPaused: event.status == TaskStatus.paused,
+            ),
+          ),
+        );
+      }
+    });
+
     on<_DownloadCompleted>((event, emit) {
-      emit(DownloadCompletedState());
-      add(LoadDownloadedModelsEvent());
+      _resetOperationFlags();
+      emit(const DownloadCompletedState());
+      add(const LoadDownloadedModelsEvent());
     });
 
     on<_DownloadFailedEvent>((event, emit) {
+      _resetOperationFlags();
       emit(DownloadErrorState(event.error));
     });
+  }
+
+  void _resetOperationFlags() {
+    _isPauseResumeInProgress = false;
+    _isCancelInProgress = false;
   }
 
   Future<void> _onLoadActiveDownloads(
     LoadActiveDownloadsEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
-    emit(LoadingActiveDownloadsState());
+    emit(const LoadingActiveDownloadsState());
     final result = await downloadRepository.getActiveDownloads();
     result.fold((failure) => emit(DownloadErrorState(failure.message)), (
       activeDownloads,
     ) {
       if (activeDownloads.isNotEmpty) {
-        logger.i("Active downloads: $activeDownloads");
+        _logger.i("Active downloads: $activeDownloads");
         emit(DownloadingModelState(activeDownloads.first));
       } else {
-        emit(InitialDownloadManagerState());
+        emit(const InitialDownloadManagerState());
       }
     });
   }
@@ -132,117 +208,200 @@ class DownloadManagerBloc
     DownloadModelEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
-    // Call the use case to start download
-    if (state is DownloadingModelState ||
-        state is DownloadProcessingState ||
-        state is DownloadStartedState) {
+    // Prevent multiple simultaneous downloads
+    if (_isDownloadInProgress()) {
       emit(const DownloadErrorState("A download is already in progress"));
       return;
     }
 
-    emit(DownloadProcessingState());
-    final result = await downloadRepository.downloadModel(
-      event.fileUrl,
-      event.fileName,
-    );
-    emit(DownloadStartedState());
+    emit(const DownloadProcessingState());
 
-    result.fold((failure) => emit(DownloadErrorState(failure.message)), (
-      downloadModel,
-    ) {
-      emit(DownloadingModelState(downloadModel));
-    });
+    try {
+      final result = await downloadRepository.downloadModel(
+        event.fileUrl,
+        event.fileName,
+      );
+
+      emit(const DownloadStartedState());
+
+      result.fold(
+        (failure) => emit(DownloadErrorState(failure.message)),
+        (downloadModel) => emit(DownloadingModelState(downloadModel)),
+      );
+    } catch (e) {
+      emit(DownloadErrorState('Failed to start download: $e'));
+    }
+  }
+
+  bool _isDownloadInProgress() {
+    return state is DownloadingModelState ||
+        state is DownloadProcessingState ||
+        state is DownloadStartedState;
   }
 
   Future<void> _onCancelDownload(
     CancelDownloadEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
-    // Logic to cancel download
-    if (state is! DownloadingModelState) {
-      emit(const DownloadErrorState("No download to cancel"));
+    // Prevent duplicate cancel operations
+    if (_isCancelInProgress) {
+      _logger.w(
+        'Cancel operation already in progress, ignoring duplicate request',
+      );
       return;
     }
-    final currentState = state as DownloadingModelState;
-    emit(currentState.copyWith(isStopping: true));
-    // We should cancel the download using FileDownloader
-    final result = await downloadRepository.cancelDownload(event.task);
-    result.fold((failure) => emit(DownloadErrorState(failure.message)), (
-      isCancelled,
-    ) {
-      if (!isCancelled) {
-        emit(currentState.copyWith(error: "Failed to cancel download"));
-        return;
-      }
 
-      emit(DownloadCancelledState(event.task.taskId));
-    });
+    if (state is! DownloadingModelState) {
+      _isCancelInProgress = true;
+      await downloadRepository.cancelDownload(event.task);
+      _isCancelInProgress = false;
+      return;
+    }
+
+    final currentState = state as DownloadingModelState;
+    _isCancelInProgress = true;
+    emit(currentState.copyWith(isStopping: true));
+
+    try {
+      final result = await downloadRepository.cancelDownload(event.task);
+      result.fold((failure) => emit(DownloadErrorState(failure.message)), (
+        isCancelled,
+      ) {
+        if (isCancelled) {
+          emit(DownloadCancelledState(event.task.taskId));
+        } else {
+          emit(currentState.copyWith(error: "Failed to cancel download"));
+        }
+      });
+    } catch (e) {
+      emit(DownloadErrorState('Error cancelling download: $e'));
+    } finally {
+      _isCancelInProgress = false;
+      _isPauseResumeInProgress = false; // Reset both flags on cancel
+    }
   }
 
   Future<void> _onPauseDownload(
     PauseDownloadEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
-    if (state is! DownloadingModelState) {
-      emit(const DownloadErrorState("No download to pause"));
+    // Prevent duplicate pause operations
+    if (_isPauseResumeInProgress) {
+      _logger.w(
+        'Pause operation already in progress, ignoring duplicate request',
+      );
       return;
     }
+
+    if (state is! DownloadingModelState) {
+      _isPauseResumeInProgress = true;
+      await downloadRepository.pauseDownload(event.task);
+      _isPauseResumeInProgress = false;
+      return;
+    }
+
     final currentState = state as DownloadingModelState;
+
+    // Check if task matches current download
+    if (currentState.downloadModel.task.taskId != event.task.taskId) {
+      _logger.w('Task ID mismatch, ignoring pause request');
+      return;
+    }
+
+    // Check if already paused
+    if (currentState.downloadModel.isPaused) {
+      _logger.w('Download is already paused, ignoring pause request');
+      return;
+    }
+
+    _isPauseResumeInProgress = true;
     emit(currentState.copyWith(isStopping: true));
-    // We should pause the download using FlutterDownloader
-    final result = await downloadRepository.pauseDownload(event.task);
 
-    result.fold((failure) => emit(DownloadErrorState(failure.message)), (
-      isPaused,
-    ) {
-      if (!isPaused) {
-        emit(currentState.copyWith(error: "Failed to pause download"));
-        return;
-      }
-
-      final downloadModel = currentState.downloadModel.copyWith(
-        isPaused: true,
-        status: TaskStatus.paused.name,
-      );
-      emit(DownloadingModelState(downloadModel, isStopping: false));
-    });
-
-    // Update the state to reflect the paused status
+    try {
+      final result = await downloadRepository.pauseDownload(event.task);
+      result.fold((failure) => emit(DownloadErrorState(failure.message)), (
+        isPaused,
+      ) {
+        if (isPaused) {
+          final downloadModel = currentState.downloadModel.copyWith(
+            isPaused: true,
+            status: TaskStatus.paused.name,
+          );
+          emit(DownloadingModelState(downloadModel, isStopping: false));
+        } else {
+          emit(currentState.copyWith(error: "Failed to pause download"));
+        }
+      });
+    } catch (e) {
+      emit(DownloadErrorState('Error pausing download: $e'));
+    } finally {
+      _isPauseResumeInProgress = false;
+    }
   }
 
   Future<void> _onResumeDownload(
     ResumeDownloadEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
-    // Resume the download using FlutterDownloader
-    if (state is! DownloadingModelState) {
-      emit(const DownloadErrorState("No download to resume"));
+    // Prevent duplicate resume operations
+    if (_isPauseResumeInProgress) {
+      _logger.w(
+        'Resume operation already in progress, ignoring duplicate request',
+      );
       return;
     }
+
+    if (state is! DownloadingModelState) {
+      _isPauseResumeInProgress = true;
+      await downloadRepository.resumeDownload(event.task);
+      _isPauseResumeInProgress = false;
+      return;
+    }
+
     final currentState = state as DownloadingModelState;
+
+    // Check if task matches current download
+    if (currentState.downloadModel.task.taskId != event.task.taskId) {
+      _logger.w('Task ID mismatch, ignoring resume request');
+      return;
+    }
+
+    // Check if already running
+    if (!currentState.downloadModel.isPaused) {
+      _logger.w('Download is already running, ignoring resume request');
+      return;
+    }
+
+    _isPauseResumeInProgress = true;
     emit(currentState.copyWith(isStopping: false));
-    final result = await downloadRepository.resumeDownload(event.task);
-    result.fold((failure) => emit(DownloadErrorState(failure.message)), (
-      isResumed,
-    ) {
-      if (!isResumed) {
-        emit(currentState.copyWith(error: "Failed to resume download"));
-        return;
-      }
-      // Update the state to reflect the resumed status
-      final downloadModel = currentState.downloadModel.copyWith(
-        isPaused: false,
-        status: TaskStatus.running.name,
-      );
-      emit(DownloadingModelState(downloadModel, isStopping: false));
-    });
+
+    try {
+      final result = await downloadRepository.resumeDownload(event.task);
+      result.fold((failure) => emit(DownloadErrorState(failure.message)), (
+        isResumed,
+      ) {
+        if (isResumed) {
+          final downloadModel = currentState.downloadModel.copyWith(
+            isPaused: false,
+            status: TaskStatus.running.name,
+          );
+          emit(DownloadingModelState(downloadModel, isStopping: false));
+        } else {
+          emit(currentState.copyWith(error: "Failed to resume download"));
+        }
+      });
+    } catch (e) {
+      emit(DownloadErrorState('Error resuming download: $e'));
+    } finally {
+      _isPauseResumeInProgress = false;
+    }
   }
 
   Future<void> _onLoadDownloadedModels(
     LoadDownloadedModelsEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
-    emit(LoadingDownloadedModelsState());
+    emit(const LoadingDownloadedModelsState());
 
     final result = await downloadRepository.getAvailableModels();
     result.fold((failure) => emit(DownloadErrorState(failure.message)), (
@@ -261,14 +420,19 @@ class DownloadManagerBloc
     Emitter<DownloadManagerState> emit,
   ) async {
     // Logic to remove the model
-    final result = await downloadRepository.deleteDownload(event.taskId, event.filePath);
+    final result = await downloadRepository.deleteDownload(
+      event.taskId,
+      event.filePath,
+    );
     result.fold((failure) => emit(DownloadErrorState(failure.message)), (_) {
-      add(LoadDownloadedModelsEvent());
+      add(const LoadDownloadedModelsEvent());
     });
   }
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
+    await _progressSubscription.cancel();
+    await _statusSubscription.cancel();
     downloadRepository.dispose();
     return super.close();
   }
@@ -300,4 +464,11 @@ class _DownloadFailedEvent extends DownloadManagerEvent {
   final String taskId;
   final String error;
   const _DownloadFailedEvent(this.taskId, this.error);
+}
+
+class _DownloadStatusUpdate extends DownloadManagerEvent {
+  final Task task;
+  final TaskStatus status;
+
+  const _DownloadStatusUpdate(this.task, this.status);
 }

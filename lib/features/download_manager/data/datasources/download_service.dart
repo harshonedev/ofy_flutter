@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:background_downloader/background_downloader.dart';
+import 'package:llm_cpp_chat_app/core/utils/model_utils.dart';
 import 'package:logger/logger.dart';
 
 class DownloadService {
@@ -58,7 +59,9 @@ class DownloadService {
               DownloadProgress(
                 task: update.task,
                 progress: update.progress,
-                expectedFileSize: update.expectedFileSize.toString(),
+                expectedFileSize: ModelUtils.calculateFileSize(
+                  update.expectedFileSize,
+                ),
                 networkSpeed: update.networkSpeedAsString,
                 timeRemaining: update.timeRemainingAsString,
               ),

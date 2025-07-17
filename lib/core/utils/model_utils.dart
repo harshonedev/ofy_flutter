@@ -69,6 +69,22 @@ class ModelUtils {
     };
   }
 
+  static String calculateFileSize(int sizeInBytes) {
+    // Convert bytes to KB, MB, GB, etc.
+    if (sizeInBytes >= 1024 * 1024 * 1024) {
+      final sizeInGB = sizeInBytes / (1024 * 1024 * 1024);
+      return '${sizeInGB.toStringAsFixed(2)} GB';
+    } else if (sizeInBytes >= 1024 * 1024) {
+      final sizeInMB = sizeInBytes / (1024 * 1024);
+      return '${sizeInMB.toStringAsFixed(2)} MB';
+    } else if (sizeInBytes >= 1024) {
+      final sizeInKB = sizeInBytes / 1024;     
+      return '${sizeInKB.toStringAsFixed(2)} KB';
+    } else {
+      return '$sizeInBytes bytes';
+    }
+  }
+
   /// Get last modified date for the file
   static String _getLastModifiedDate(String filePath) {
     try {

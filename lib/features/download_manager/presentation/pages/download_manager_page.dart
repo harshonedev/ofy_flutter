@@ -203,6 +203,9 @@ class _DownloadManagerState extends State<DownloadManager> {
             task: state.downloadModel.task,
             isPaused: state.downloadModel.isPaused,
             isStopping: state.isStopping,
+            expectedFileSize: state.downloadModel.expectedFileSize,
+            networkSpeed: state.downloadModel.networkSpeed,
+            timeRemaining: state.downloadModel.timeRemaining,
           );
         } else {
           // No active downloads
@@ -249,6 +252,9 @@ class _DownloadManagerState extends State<DownloadManager> {
     required Task task,
     required bool isPaused,
     required bool isStopping,
+    String expectedFileSize = '',
+    String networkSpeed = '',
+    String timeRemaining = '',
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -360,6 +366,93 @@ class _DownloadManagerState extends State<DownloadManager> {
                 );
               },
             ),
+            const SizedBox(height: 16),
+            // Download information row
+            if (expectedFileSize.isNotEmpty ||
+                networkSpeed.isNotEmpty ||
+                timeRemaining.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (expectedFileSize.isNotEmpty)
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.storage_rounded,
+                              size: 16,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                expectedFileSize,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (networkSpeed.isNotEmpty)
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.speed_rounded,
+                              size: 16,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                networkSpeed,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (timeRemaining.isNotEmpty)
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 16,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                timeRemaining,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             // Action buttons
             Row(

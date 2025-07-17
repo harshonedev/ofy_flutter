@@ -48,9 +48,19 @@ class DownloadModel extends Equatable {
     );
   }
 
+  // Helper methods for better usability
+  bool get isDownloading => status == TaskStatus.running.name && !isPaused;
+  bool get isCompleted => status == TaskStatus.complete.name;
+  bool get isFailed => status == TaskStatus.failed.name;
+  bool get isCancelled => status == TaskStatus.canceled.name;
+
+  double get progressPercentage => progress / 100.0;
+
+  String get formattedProgress => '$progress%';
+
   @override
   List<Object> get props => [
-    task,
+    task.taskId, // Use taskId instead of entire task object for better performance
     fileName,
     filePath,
     progress,
@@ -60,5 +70,9 @@ class DownloadModel extends Equatable {
     timeRemaining,
     isPaused,
   ];
-}
 
+  @override
+  String toString() {
+    return 'DownloadModel(taskId: ${task.taskId}, fileName: $fileName, progress: $progress%, status: $status, isPaused: $isPaused)';
+  }
+}

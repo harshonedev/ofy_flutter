@@ -7,9 +7,14 @@ abstract class DownloadManagerEvent extends Equatable {
   @override
   List<Object> get props => [];
 }
-class LoadDownloadedModelsEvent extends DownloadManagerEvent {}
 
-class LoadActiveDownloadsEvent extends DownloadManagerEvent {}
+class LoadDownloadedModelsEvent extends DownloadManagerEvent {
+  const LoadDownloadedModelsEvent();
+}
+
+class LoadActiveDownloadsEvent extends DownloadManagerEvent {
+  const LoadActiveDownloadsEvent();
+}
 
 class DownloadModelEvent extends DownloadManagerEvent {
   final String fileName;
@@ -18,7 +23,7 @@ class DownloadModelEvent extends DownloadManagerEvent {
   const DownloadModelEvent(this.fileName, this.fileUrl);
 
   @override
-  List<Object> get props => [fileName];
+  List<Object> get props => [fileName, fileUrl];
 }
 
 class CancelDownloadEvent extends DownloadManagerEvent {
@@ -27,7 +32,7 @@ class CancelDownloadEvent extends DownloadManagerEvent {
   const CancelDownloadEvent(this.task);
 
   @override
-  List<Object> get props => [task]; 
+  List<Object> get props => [task.taskId]; // Use taskId for better comparison
 }
 
 class PauseDownloadEvent extends DownloadManagerEvent {
@@ -36,7 +41,7 @@ class PauseDownloadEvent extends DownloadManagerEvent {
   const PauseDownloadEvent(this.task);
 
   @override
-  List<Object> get props => [task];
+  List<Object> get props => [task.taskId];
 }
 
 class ResumeDownloadEvent extends DownloadManagerEvent {
@@ -45,7 +50,7 @@ class ResumeDownloadEvent extends DownloadManagerEvent {
   const ResumeDownloadEvent(this.task);
 
   @override
-  List<Object> get props => [task];
+  List<Object> get props => [task.taskId];
 }
 
 class RemoveModelEvent extends DownloadManagerEvent {
