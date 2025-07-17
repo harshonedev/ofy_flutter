@@ -208,9 +208,15 @@ class DownloadRepositoryImpl implements DownloadRepository {
                 final downloadModelData = DownloadModelData.fromTask(
                   record.task,
                 ).copyWith(
-                  progress: (record.progress / 100).toInt(),
+                  progress: (record.progress * 100).round(),
                   status: record.status.toString(),
                   expectedFileSize: _calculateFileSize(record.expectedFileSize),
+                  isPaused: record.status == file_downloader.TaskStatus.paused,
+                );
+                logger.i(
+                  'Active download: ${downloadModelData.task.taskId}, '
+                  'Status: ${downloadModelData.status}, '
+                  'Progress: ${downloadModelData.progress}%',
                 );
                 return downloadModelData;
               })

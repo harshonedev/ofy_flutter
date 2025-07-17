@@ -13,8 +13,19 @@ class InitialDownloadManagerState extends DownloadManagerState {}
 
 class DownloadingModelState extends DownloadManagerState {
   final DownloadModel downloadModel;
+  final bool isStopping;
 
-  const DownloadingModelState(this.downloadModel);
+  const DownloadingModelState(this.downloadModel, {this.isStopping = false});
+
+  DownloadingModelState copyWith({
+    DownloadModel? downloadModel,
+    bool? isStopping,
+  }) {
+    return DownloadingModelState(
+      downloadModel ?? this.downloadModel,
+      isStopping: isStopping ?? this.isStopping,
+    );
+  }
 
   @override
   List<Object> get props => [downloadModel];

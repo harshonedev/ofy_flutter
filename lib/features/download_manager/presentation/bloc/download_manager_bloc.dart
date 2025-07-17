@@ -23,7 +23,7 @@ class DownloadManagerBloc
       add(
         _DownloadProgress(
           progress.task,
-          (progress.progress / 100).toInt(),
+          (progress.progress * 100).round(),
           networkSpeed: progress.networkSpeed,
           timeRemaining: progress.timeRemaining,
           expectedFileSize: progress.expectedFileSize,
@@ -53,8 +53,20 @@ class DownloadManagerBloc
 
     // Internal update
     on<_DownloadProgress>((event, emit) async {
+      logger.i(
+        "Download progress for task ${event.task.taskId}: ${event.progress}%",
+      );
+      if (event.progress < 0) {
+        logger.e(
+          "Invalid progress value: ${event.progress} for task ${event.task.taskId}",
+        );
+        return; // Ignore invalid progress updates
+      }
       if (state is DownloadingModelState) {
         final currentState = state as DownloadingModelState;
+        logger.i(
+          "Current download model task ID: ${currentState.downloadModel.task.taskId}",
+        );
         if (currentState.downloadModel.task.taskId != event.task.taskId) {
           return; // Ignore progress for other tasks
         }
@@ -164,18 +176,31 @@ class DownloadManagerBloc
     PauseDownloadEvent event,
     Emitter<DownloadManagerState> emit,
   ) async {
+    if (state is! DownloadingModelState) {
+      emit(const DownloadErrorState("No download to pause"));
+      return;
+    }
+    final currentState = state as DownloadingModelState;
+    emit(currentState.copyWith(isStopping: true));
     // We should pause the download using FlutterDownloader
-    await downloadRepository.pauseDownload(event.task);
+    final result = await downloadRepository.pauseDownload(event.task);
 
-    // Update the state to reflect the paused status
-    if (state is DownloadingModelState) {
+    result.fold((failure) => emit(DownloadErrorState(failure.message)), (
+      isPaused,
+    ) {
+      if (!isPaused) {
+        emit(const DownloadErrorState("Failed to pause download"));
+        return;
+      }
       final currentState = state as DownloadingModelState;
       final downloadModel = currentState.downloadModel.copyWith(
         isPaused: true,
         status: TaskStatus.paused.name,
       );
-      emit(DownloadingModelState(downloadModel));
-    }
+      emit(DownloadingModelState(downloadModel, isStopping: false));
+    });
+
+    // Update the state to reflect the paused status
   }
 
   Future<void> _onResumeDownload(
@@ -183,20 +208,26 @@ class DownloadManagerBloc
     Emitter<DownloadManagerState> emit,
   ) async {
     // Resume the download using FlutterDownloader
+    if (state is! DownloadingModelState) {
+      emit(const DownloadErrorState("No download to resume"));
+      return;
+    }
+    final currentState = state as DownloadingModelState;
+    emit(currentState.copyWith(isStopping: false));
     final result = await downloadRepository.resumeDownload(event.task);
-
     result.fold((failure) => emit(DownloadErrorState(failure.message)), (
       isResumed,
     ) {
-      // Update the state to reflect the resumed status
-      if (state is DownloadingModelState) {
-        final currentState = state as DownloadingModelState;
-        final downloadModel = currentState.downloadModel.copyWith(
-          isPaused: false,
-          status: TaskStatus.running.name,
-        );
-        emit(DownloadingModelState(downloadModel));
+      if (!isResumed) {
+        emit(const DownloadErrorState("Failed to resume download"));
+        return;
       }
+      // Update the state to reflect the resumed status
+      final downloadModel = currentState.downloadModel.copyWith(
+        isPaused: false,
+        status: TaskStatus.running.name,
+      );
+      emit(DownloadingModelState(downloadModel, isStopping: false));
     });
   }
 

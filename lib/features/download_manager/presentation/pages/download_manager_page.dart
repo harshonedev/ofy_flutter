@@ -53,8 +53,8 @@ class _DownloadManagerState extends State<DownloadManager> {
     super.initState();
     // Load downloaded models when page is initialized
     BlocProvider.of<DownloadManagerBloc>(context)
-      ..add(LoadActiveDownloadsEvent())
-      ..add(LoadDownloadedModelsEvent());
+      ..add(LoadDownloadedModelsEvent())
+      ..add(LoadActiveDownloadsEvent());
   }
 
   @override
@@ -183,15 +183,18 @@ class _DownloadManagerState extends State<DownloadManager> {
             current is DownloadCompletedState ||
             current is DownloadErrorState ||
             current is InitialDownloadManagerState ||
-            current is LoadingActiveDownloadsState;
+            current is LoadingActiveDownloadsState ||
+            current is DownloadCancelledState;
       },
       builder: (context, state) {
         if (state is DownloadingModelState) {
           return _buildDownloadProgressCard(
             context: context,
             fileName: state.downloadModel.fileName,
-            progress: state.downloadModel.progress.toInt(),
+            progress: state.downloadModel.progress,
             task: state.downloadModel.task,
+            isPaused: state.downloadModel.isPaused,
+            isStopping: state.isStopping,
           );
         } else {
           // No active downloads
@@ -236,13 +239,10 @@ class _DownloadManagerState extends State<DownloadManager> {
     required String fileName,
     required int progress,
     required Task task,
+    required bool isPaused,
+    required bool isStopping,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final blocState = BlocProvider.of<DownloadManagerBloc>(context).state;
-    final isPaused =
-        blocState is DownloadingModelState
-            ? blocState.downloadModel.isPaused
-            : false;
 
     return Card(
       elevation: 0,
@@ -360,16 +360,18 @@ class _DownloadManagerState extends State<DownloadManager> {
                 // Pause/Resume button
                 FilledButton.tonal(
                   onPressed: () {
-                    if (isPaused) {
-                      // Resume download
-                      context.read<DownloadManagerBloc>().add(
-                        ResumeDownloadEvent(task),
-                      );
-                    } else {
-                      // Pause download
-                      context.read<DownloadManagerBloc>().add(
-                        PauseDownloadEvent(task),
-                      );
+                    if (!isStopping) {
+                      if (isPaused) {
+                        // Resume download
+                        context.read<DownloadManagerBloc>().add(
+                          ResumeDownloadEvent(task),
+                        );
+                      } else {
+                        // Pause download
+                        context.read<DownloadManagerBloc>().add(
+                          PauseDownloadEvent(task),
+                        );
+                      }
                     }
                   },
                   style: FilledButton.styleFrom(
