@@ -1,62 +1,141 @@
 import 'dart:async';
-import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:llm_cpp_chat_app/core/constants/app_constants.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class DownloadService {
   final Logger logger = Logger();
-  final SharedPreferences sharedPreferences;
+  final FileDownloader downloader;
 
-  DownloadService({required this.sharedPreferences});
+  final StreamController<DownloadProgress> _downloadProgressStreamController =
+      StreamController<DownloadProgress>.broadcast();
+  final StreamController<DownloadStatus> _downloadStatusStreamController =
+      StreamController<DownloadStatus>.broadcast();
 
-  Future<String?> downloadFile(String fileUrl, String fileName) async {
+  Stream<DownloadProgress> get downloadProgressStream =>
+      _downloadProgressStreamController.stream;
+  Stream<DownloadStatus> get downloadStatusStream =>
+      _downloadStatusStreamController.stream;
+
+  DownloadService({required this.downloader});
+
+  Future<Task?> downloadFile(String fileUrl, String fileName) async {
     try {
-      final taskId = await FlutterDownloader.enqueue(
+      final task = DownloadTask(
         url: fileUrl,
-        savedDir: AppConstants.defaultDownloadPath,
-        fileName: fileName,
-        showNotification: true,
-        openFileFromNotification: true,
+        filename: fileName,
+        retries: 3,
+        directory: 'models',
+        allowPause: true,
+        baseDirectory: BaseDirectory.applicationDocuments,
+        updates: Updates.statusAndProgress,
       );
-      logger.i('Download started: $taskId');
-      return taskId;
+      final successfullyEnqueued = await downloader.enqueue(task);
+      logger.i('Download started: $successfullyEnqueued');
+      return successfullyEnqueued ? task : null;
     } catch (e) {
       logger.e('Error downloading file: $e');
       throw Exception('Failed to download file');
     }
   }
 
-  Future<List<DownloadTask>?> loadDownlaods() async {
+  void startDownloader() {
+    downloader.start();
+    logger.i('Downloader started');
+  }
+
+  void startListeningToDownloads() {
+    downloader.updates.listen(
+      (update) {
+        switch (update) {
+          case TaskStatusUpdate():
+            _downloadStatusStreamController.add(
+              DownloadStatus(task: update.task, status: update.status),
+            );
+            logger.i('Download status updated: ${update.status}');
+
+          case TaskProgressUpdate():
+            _downloadProgressStreamController.add(
+              DownloadProgress(
+                task: update.task,
+                progress: update.progress,
+                expectedFileSize: update.expectedFileSize.toString(),
+                networkSpeed: update.networkSpeedAsString,
+                timeRemaining: update.timeRemainingAsString,
+              ),
+            );
+            logger.i(
+              'Download progress updated: ${update.progress}%, '
+              'Expected Size: ${update.expectedFileSize}, '
+              'Network Speed: ${update.networkSpeedAsString}, '
+              'Time Remaining: ${update.timeRemainingAsString}',
+            );
+        }
+      },
+      onError: (error) {
+        logger.e('Error in download updates stream: $error');
+      },
+    );
+  }
+
+  Future<List<TaskRecord>> loadDownlaods() async {
     try {
-      final tasks = await FlutterDownloader.loadTasks();
-      if (tasks != null) {
-        for (var task in tasks) {
+      final taskRecords = await downloader.database.allRecords();
+      if (taskRecords.isNotEmpty) {
+        for (var record in taskRecords) {
           logger.i(
-            'Task ID: ${task.taskId}, Status: ${task.status}, Progress: ${task.progress}, File Name: ${task.filename}, Dir: ${task.savedDir}',
+            'Task ID: ${record.taskId}, Status: ${record.status}, Progress: ${record.progress}, File Name: ${record.task.filename}, Dir: ${record.task.directory}, baseDir : ${record.task.baseDirectory.name}',
           );
         }
       }
-      return tasks;
+      return taskRecords;
     } catch (e) {
       logger.e('Error loading downloads: $e');
       throw Exception('Failed to load downloads');
     }
   }
 
-  Future<void> cancelDownload(String taskId) async {
-    await FlutterDownloader.cancel(taskId: taskId);
+  Future<bool> cancelDownload(Task task) async {
+    return await downloader.cancelTaskWithId(task.taskId);
   }
 
-  Future<void> pauseDownload(String taskId) async {
-    await FlutterDownloader.pause(taskId: taskId);
+  Future<bool> pauseDownload(DownloadTask task) async {
+    return await downloader.pause(task);
   }
 
-  Future<String?> resumeDownload(String taskId) async {
-    return await FlutterDownloader.resume(taskId: taskId);
+  Future<bool> resumeDownload(DownloadTask task) async {
+    return await downloader.resume(task);
   }
 
   Future<void> deleteDownload(String taskId) async {
-    await FlutterDownloader.remove(taskId: taskId, shouldDeleteContent: true);
+    await downloader.database.deleteRecordWithId(taskId);
   }
+
+  void dispose() {
+    _downloadProgressStreamController.close();
+    _downloadStatusStreamController.close();
+    logger.i('DownloadService disposed');
+  }
+}
+
+class DownloadProgress {
+  final Task task;
+  final double progress;
+  final String expectedFileSize;
+  final String networkSpeed;
+  final String timeRemaining;
+
+  const DownloadProgress({
+    required this.task,
+    required this.progress,
+    required this.expectedFileSize,
+    required this.networkSpeed,
+    required this.timeRemaining,
+  });
+}
+
+class DownloadStatus {
+  final Task task;
+  final TaskStatus status;
+
+  const DownloadStatus({required this.task, required this.status});
 }

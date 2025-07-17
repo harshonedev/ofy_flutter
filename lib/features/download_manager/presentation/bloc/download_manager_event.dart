@@ -1,3 +1,4 @@
+import 'package:background_downloader/background_downloader.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class DownloadManagerEvent extends Equatable {
@@ -21,30 +22,30 @@ class DownloadModelEvent extends DownloadManagerEvent {
 }
 
 class CancelDownloadEvent extends DownloadManagerEvent {
-  final String taskId;
+  final Task task;
 
-  const CancelDownloadEvent(this.taskId);
+  const CancelDownloadEvent(this.task);
 
   @override
-  List<Object> get props => [taskId]; 
+  List<Object> get props => [task]; 
 }
 
 class PauseDownloadEvent extends DownloadManagerEvent {
-  final String taskId;
+  final Task task;
 
-  const PauseDownloadEvent(this.taskId);
+  const PauseDownloadEvent(this.task);
 
   @override
-  List<Object> get props => [taskId];
+  List<Object> get props => [task];
 }
 
 class ResumeDownloadEvent extends DownloadManagerEvent {
-  final String taskId;
+  final Task task;
 
-  const ResumeDownloadEvent(this.taskId);
+  const ResumeDownloadEvent(this.task);
 
   @override
-  List<Object> get props => [taskId];
+  List<Object> get props => [task];
 }
 
 class RemoveModelEvent extends DownloadManagerEvent {

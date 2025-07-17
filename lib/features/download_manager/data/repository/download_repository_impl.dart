@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:background_downloader/background_downloader.dart'
+    as file_downloader;
 import 'package:dartz/dartz.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:llm_cpp_chat_app/core/constants/app_constants.dart';
 import 'package:llm_cpp_chat_app/core/error/exceptions.dart';
 import 'package:llm_cpp_chat_app/core/error/failures.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/data/datasources/download_service.dart';
@@ -26,12 +26,21 @@ class DownloadRepositoryImpl implements DownloadRepository {
     required this.huggingFaceApi,
     required this.downloadService,
   });
+
   @override
-  Future<Either<Failure, void>> cancelDownload(String taskId) async {
+  void startFileDownloader() {
+    downloadService.startDownloader();
+    logger.i('File downloader started');
+  }
+
+  @override
+  Future<Either<Failure, bool>> cancelDownload(
+    file_downloader.Task task,
+  ) async {
     try {
-      await downloadService.cancelDownload(taskId);
+      final isCancelled = await downloadService.cancelDownload(task);
       logger.i('Download cancelled');
-      return const Right(null);
+      return Right(isCancelled);
     } catch (e) {
       logger.e('Error cancelling download: $e');
       return const Left(DownloadFailure('Failed to cancel download'));
@@ -39,25 +48,25 @@ class DownloadRepositoryImpl implements DownloadRepository {
   }
 
   @override
-  Future<Either<Failure, String>> downloadModel(
+  Future<Either<Failure, DownloadModel>> downloadModel(
     String fileUrl,
     String fileName,
   ) async {
     try {
       // if file already exists
-      final file = File("${AppConstants.defaultDownloadPath}/$fileName");
-      if (await file.exists()) {
-        logger.i('File already exists: $fileName');
-        return const Left(
-          DownloadFailure(
-            'File already exists in ${AppConstants.defaultDownloadPath}',
-          ),
-        );
-      }
-      final taskId = await downloadService.downloadFile(fileUrl, fileName);
-      if (taskId != null) {
-        logger.i('Download started: $taskId');
-        return Right(taskId);
+      // final file = File("${AppConstants.defaultDownloadPath}/$fileName");
+      // if (await file.exists()) {
+      //   logger.i('File already exists: $fileName');
+      //   return const Left(
+      //     DownloadFailure(
+      //       'File already exists in ${AppConstants.defaultDownloadPath}',
+      //     ),
+      //   );
+      // }
+      final task = await downloadService.downloadFile(fileUrl, fileName);
+      if (task != null) {
+        logger.i('Download started: ${task.taskId}');
+        return Right(DownloadModelData.fromTask(task));
       } else {
         logger.e('Failed to start download');
         return const Left(DownloadFailure('Failed to start download'));
@@ -150,10 +159,11 @@ class DownloadRepositoryImpl implements DownloadRepository {
   }
 
   @override
-  Future<Either<Failure, void>> pauseDownload(String taskId) async {
+  Future<Either<Failure, bool>> pauseDownload(file_downloader.Task task) async {
     try {
-      await downloadService.pauseDownload(taskId);
-      return const Right(null);
+      final downloadTask = file_downloader.DownloadTask.fromJson(task.toJson());
+      final isPaused = await downloadService.pauseDownload(downloadTask);
+      return Right(isPaused);
     } catch (e) {
       logger.e('Error pausing download: $e');
       return const Left(DownloadFailure('Failed to pause download'));
@@ -161,12 +171,15 @@ class DownloadRepositoryImpl implements DownloadRepository {
   }
 
   @override
-  Future<Either<Failure, String>> resumeDownload(String taskId) async {
+  Future<Either<Failure, bool>> resumeDownload(
+    file_downloader.Task task,
+  ) async {
     try {
-      final newTaskId = await downloadService.resumeDownload(taskId);
-      if (newTaskId != null) {
-        logger.i('Download resumed: $newTaskId');
-        return Right(newTaskId);
+      final downloadTask = file_downloader.DownloadTask.fromJson(task.toJson());
+      final isResumed = await downloadService.resumeDownload(downloadTask);
+      if (isResumed) {
+        logger.i('Download resumed: $isResumed');
+        return Right(isResumed);
       } else {
         logger.e('Failed to resume download');
         return const Left(DownloadFailure('Failed to resume download'));
@@ -180,14 +193,28 @@ class DownloadRepositoryImpl implements DownloadRepository {
   @override
   Future<Either<Failure, List<DownloadModel>>> getActiveDownloads() async {
     try {
-      final tasks = await downloadService.loadDownlaods();
-      if (tasks == null || tasks.isEmpty) {
+      final records = await downloadService.loadDownlaods();
+      if (records.isEmpty) {
         return const Right([]);
       }
       final downloadModels =
-          tasks.map((task) {
-            return DownloadModelData.fromDownloadTask(task);
-          }).toList();
+          records
+              .where((record) {
+                return record.status == file_downloader.TaskStatus.running ||
+                    record.status == file_downloader.TaskStatus.paused ||
+                    record.status == file_downloader.TaskStatus.waitingToRetry;
+              })
+              .map((record) {
+                final downloadModelData = DownloadModelData.fromTask(
+                  record.task,
+                ).copyWith(
+                  progress: (record.progress / 100).toInt(),
+                  status: record.status.toString(),
+                  expectedFileSize: _calculateFileSize(record.expectedFileSize),
+                );
+                return downloadModelData;
+              })
+              .toList();
       return Right(downloadModels);
     } catch (e) {
       logger.e('Error getting active downloads: $e');
@@ -198,28 +225,33 @@ class DownloadRepositoryImpl implements DownloadRepository {
   @override
   Future<Either<Failure, List<ModelFile>>> getAvailableModels() async {
     try {
-      final tasks = await downloadService.loadDownlaods();
-      if (tasks == null || tasks.isEmpty) {
+      final records = await downloadService.loadDownlaods();
+      if (records.isEmpty) {
         return const Right([]);
       }
-      final downloadedTasks =
-          tasks.where((task) {
-            return task.status == DownloadTaskStatus.complete;
+      final downloadedRecords =
+          records.where((record) {
+            return record.status == file_downloader.TaskStatus.complete;
           }).toList();
       List<ModelFile> modelFiles = [];
-      for (var task in downloadedTasks) {
-        final filePath = "${task.savedDir}/${task.filename}";
+      for (var record in downloadedRecords) {
+        final filePath = await record.task.filePath(
+          withFilename: record.task.filename,
+        );
         final file = File(filePath);
-        if (await file.exists()) {
-          final fileSize = await file.length();
-          final modelFile = ModelFile(
-            taskId: task.taskId,
-            fileName: task.filename ?? 'Unknown',
-            filePath: filePath,
-            fileSize: _calculateFileSize(fileSize),
-          );
-          modelFiles.add(modelFile);
+        String fileSize = 'Unknown';
+        if (file.existsSync()) {
+          fileSize = _calculateFileSize(file.lengthSync());
+        } else {
+          logger.w('File does not exist: $filePath');
         }
+        final modelFile = ModelFile(
+          taskId: record.taskId,
+          fileName: record.task.filename,
+          filePath: filePath,
+          fileSize: fileSize,
+        );
+        modelFiles.add(modelFile);
       }
       return Right(modelFiles);
     } catch (e) {
@@ -238,5 +270,27 @@ class DownloadRepositoryImpl implements DownloadRepository {
       logger.e('Error deleting download: $e');
       return const Left(DownloadFailure('Failed to delete download'));
     }
+  }
+
+  @override
+  Stream<DownloadProgress> downloadProgressStream() {
+    return downloadService.downloadProgressStream;
+  }
+
+  @override
+  Stream<DownloadStatus> downloadStatusStream() {
+    return downloadService.downloadStatusStream;
+  }
+
+  @override
+  void dispose() {
+    downloadService.dispose();
+    logger.i('DownloadRepository disposed');
+  }
+
+  @override
+  void startListeningToDownloads() {
+    downloadService.startListeningToDownloads();
+    logger.i('Started listening to download updates');
   }
 }

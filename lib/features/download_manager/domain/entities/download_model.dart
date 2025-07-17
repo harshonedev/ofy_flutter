@@ -1,40 +1,64 @@
+import 'package:background_downloader/background_downloader.dart';
 import 'package:equatable/equatable.dart';
 
 class DownloadModel extends Equatable {
-  final String taskId;
+  final Task task;
   final String fileName;
-  final String fileUrl;
+  final String filePath;
   final int progress;
-  final bool isPaused;
   final String status;
+  final String expectedFileSize;
+  final String networkSpeed;
+  final String timeRemaining;
+  final bool isPaused;
 
   const DownloadModel({
-    required this.taskId,
+    required this.task,
     required this.fileName,
-    required this.fileUrl,
-    required this.progress,
-    required this.isPaused,
-    required this.status,
+    required this.filePath,
+    this.progress = 0,
+    this.status = 'enqueued',
+    this.expectedFileSize = '',
+    this.networkSpeed = '',
+    this.timeRemaining = '',
+    this.isPaused = false,
   });
 
   DownloadModel copyWith({
-    String? taskId,
+    Task? task,
     String? fileName,
-    String? fileUrl,
+    String? filePath,
     int? progress,
-    bool? isPaused,
     String? status,
+    String? expectedFileSize,
+    String? networkSpeed,
+    String? timeRemaining,
+    bool? isPaused,
   }) {
     return DownloadModel(
-      taskId: taskId ?? this.taskId,
+      task: task ?? this.task,
       fileName: fileName ?? this.fileName,
-      fileUrl: fileUrl ?? this.fileUrl,
+      filePath: filePath ?? this.filePath,
       progress: progress ?? this.progress,
-      isPaused: isPaused ?? this.isPaused,
       status: status ?? this.status,
+      expectedFileSize: expectedFileSize ?? this.expectedFileSize,
+      networkSpeed: networkSpeed ?? this.networkSpeed,
+      timeRemaining: timeRemaining ?? this.timeRemaining,
+      isPaused: isPaused ?? this.isPaused,
     );
   }
 
   @override
-  List<Object> get props => [taskId, fileName, fileUrl, progress, isPaused, status];
+  List<Object> get props => [
+    task,
+    fileName,
+    filePath,
+    progress,
+    status,
+    expectedFileSize,
+    networkSpeed,
+    timeRemaining,
+    isPaused,
+  ];
 }
+

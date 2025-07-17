@@ -2,29 +2,22 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:llm_cpp_chat_app/core/usecases/usecase.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/file_size_details.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/domain/entities/model_details.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_file_size.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_gguf_models.dart';
-import 'package:llm_cpp_chat_app/features/download_manager/domain/usecases/get_model_details.dart';
+import 'package:llm_cpp_chat_app/features/download_manager/domain/repository/download_repository.dart';
 import 'package:logger/logger.dart';
 
 class ModelsBloc extends Bloc<ModelsEvent, ModelsState> {
-  final GetGGUFModels getGGUFModels;
-  final GetModelDetails getModelDetails;
-  final GetFileSizeUseCase getFileSize;
+  final DownloadRepository _downloadRepository;
 
   final Logger logger = Logger();
 
   StreamSubscription? _fileSizeSubscription;
 
-  ModelsBloc({
-    required this.getGGUFModels,
-    required this.getModelDetails,
-    required this.getFileSize,
-  }) : super(InitialModelsState()) {
+  ModelsBloc({required DownloadRepository downloadRepository})
+    : _downloadRepository = downloadRepository,
+      super(InitialModelsState()) {
     on<LoadModelsEvent>(_onLoadModels);
     on<LoadModelDetailsEvent>(_onLoadModelDetails);
     on<FileSizeUpdateEvent>(_onFileSizeUpdate);
@@ -33,7 +26,9 @@ class ModelsBloc extends Bloc<ModelsEvent, ModelsState> {
 
   void _listenFileSizeStream(List<FileDetails> files) {
     _fileSizeSubscription?.cancel();
-    _fileSizeSubscription = getFileSize(files).listen((fileSizeDetail) {
+    _fileSizeSubscription = _downloadRepository.getFileSize(files).listen((
+      fileSizeDetail,
+    ) {
       // Handle the file size update
       fileSizeDetail.fold(
         (failure) => add(FileSizeErrorEvent(failure.message)),
@@ -52,7 +47,7 @@ class ModelsBloc extends Bloc<ModelsEvent, ModelsState> {
   ) async {
     emit(LoadingModelsState());
 
-    final result = await getGGUFModels(NoParams());
+    final result = await _downloadRepository.getGGUFModels();
 
     result.fold(
       (failure) => emit(ModelsErrorState(failure.message)),
@@ -66,7 +61,7 @@ class ModelsBloc extends Bloc<ModelsEvent, ModelsState> {
   ) async {
     emit(LoadingModelDetailsState());
 
-    final result = await getModelDetails(Params(modelId: event.modelId));
+    final result = await _downloadRepository.getModelDetails(event.modelId);
 
     result.fold((failure) => emit(ModelsErrorState(failure.message)), (model) {
       emit(LoadedModelDetailsState(model));

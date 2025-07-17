@@ -1,3 +1,4 @@
+import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/bloc/chat_bloc.dart';
@@ -189,8 +190,8 @@ class _DownloadManagerState extends State<DownloadManager> {
           return _buildDownloadProgressCard(
             context: context,
             fileName: state.downloadModel.fileName,
-            progress: state.downloadModel.progress,
-            taskId: state.downloadModel.taskId,
+            progress: state.downloadModel.progress.toInt(),
+            task: state.downloadModel.task,
           );
         } else {
           // No active downloads
@@ -234,7 +235,7 @@ class _DownloadManagerState extends State<DownloadManager> {
     required BuildContext context,
     required String fileName,
     required int progress,
-    required String taskId,
+    required Task task,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final blocState = BlocProvider.of<DownloadManagerBloc>(context).state;
@@ -362,12 +363,12 @@ class _DownloadManagerState extends State<DownloadManager> {
                     if (isPaused) {
                       // Resume download
                       context.read<DownloadManagerBloc>().add(
-                        ResumeDownloadEvent(taskId),
+                        ResumeDownloadEvent(task),
                       );
                     } else {
                       // Pause download
                       context.read<DownloadManagerBloc>().add(
-                        PauseDownloadEvent(taskId),
+                        PauseDownloadEvent(task),
                       );
                     }
                   },
@@ -395,7 +396,7 @@ class _DownloadManagerState extends State<DownloadManager> {
                   onPressed: () {
                     // Cancel the download
                     context.read<DownloadManagerBloc>().add(
-                      CancelDownloadEvent(taskId),
+                      CancelDownloadEvent(task),
                     );
                   },
                   style: FilledButton.styleFrom(
