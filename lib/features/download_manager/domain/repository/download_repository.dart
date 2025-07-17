@@ -22,7 +22,7 @@ abstract class DownloadRepository {
   Future<Either<Failure, bool>> cancelDownload(file_downloader.Task task);
   Future<Either<Failure, bool>> pauseDownload(file_downloader.Task task);
   Future<Either<Failure, bool>> resumeDownload(file_downloader.Task task);
-  Future<Either<Failure, void>> deleteDownload(String taskId);
+  Future<Either<Failure, void>> deleteDownload(String taskId, String filePath);
   Stream<Either<Failure, FileSizeDetails>> getFileSize(List<FileDetails> files);
   Stream<DownloadProgress> downloadProgressStream();
   Stream<DownloadStatus> downloadStatusStream();

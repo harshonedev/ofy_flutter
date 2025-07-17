@@ -159,12 +159,19 @@ class DownloadManagerBloc
     Emitter<DownloadManagerState> emit,
   ) async {
     // Logic to cancel download
+    if (state is! DownloadingModelState) {
+      emit(const DownloadErrorState("No download to cancel"));
+      return;
+    }
+    final currentState = state as DownloadingModelState;
+    emit(currentState.copyWith(isStopping: true));
+    // We should cancel the download using FileDownloader
     final result = await downloadRepository.cancelDownload(event.task);
     result.fold((failure) => emit(DownloadErrorState(failure.message)), (
       isCancelled,
     ) {
       if (!isCancelled) {
-        emit(const DownloadErrorState("Failed to cancel download"));
+        emit(currentState.copyWith(error: "Failed to cancel download"));
         return;
       }
 
@@ -189,10 +196,10 @@ class DownloadManagerBloc
       isPaused,
     ) {
       if (!isPaused) {
-        emit(const DownloadErrorState("Failed to pause download"));
+        emit(currentState.copyWith(error: "Failed to pause download"));
         return;
       }
-      final currentState = state as DownloadingModelState;
+
       final downloadModel = currentState.downloadModel.copyWith(
         isPaused: true,
         status: TaskStatus.paused.name,
@@ -219,7 +226,7 @@ class DownloadManagerBloc
       isResumed,
     ) {
       if (!isResumed) {
-        emit(const DownloadErrorState("Failed to resume download"));
+        emit(currentState.copyWith(error: "Failed to resume download"));
         return;
       }
       // Update the state to reflect the resumed status
@@ -254,7 +261,7 @@ class DownloadManagerBloc
     Emitter<DownloadManagerState> emit,
   ) async {
     // Logic to remove the model
-    final result = await downloadRepository.deleteDownload(event.taskId);
+    final result = await downloadRepository.deleteDownload(event.taskId, event.filePath);
     result.fold((failure) => emit(DownloadErrorState(failure.message)), (_) {
       add(LoadDownloadedModelsEvent());
     });

@@ -54,15 +54,15 @@ class DownloadRepositoryImpl implements DownloadRepository {
   ) async {
     try {
       // if file already exists
-      // final file = File("${AppConstants.defaultDownloadPath}/$fileName");
-      // if (await file.exists()) {
-      //   logger.i('File already exists: $fileName');
-      //   return const Left(
-      //     DownloadFailure(
-      //       'File already exists in ${AppConstants.defaultDownloadPath}',
-      //     ),
-      //   );
-      // }
+      final records = await downloadService.loadDownlaods();
+      final existingRecords = records.where(
+        (record) => record.task.filename == fileName,
+      );
+      if (existingRecords.isNotEmpty) {
+        logger.i('File already exists: $fileName');
+        return const Left(DownloadFailure('File already exists'));
+      }
+
       final task = await downloadService.downloadFile(fileUrl, fileName);
       if (task != null) {
         logger.i('Download started: ${task.taskId}');
@@ -267,8 +267,17 @@ class DownloadRepositoryImpl implements DownloadRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteDownload(String taskId) async {
+  Future<Either<Failure, void>> deleteDownload(
+    String taskId,
+    String filePath,
+  ) async {
     try {
+      final file = File(filePath);
+      if (file.existsSync()) {
+        file.deleteSync(); // use delete() for async
+      } else {
+        logger.w('File does not exist: $filePath');
+      }
       await downloadService.deleteDownload(taskId);
       logger.i('Download deleted');
       return const Right(null);

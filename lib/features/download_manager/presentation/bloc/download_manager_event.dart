@@ -50,9 +50,10 @@ class ResumeDownloadEvent extends DownloadManagerEvent {
 
 class RemoveModelEvent extends DownloadManagerEvent {
   final String taskId;
+  final String filePath;
 
-  const RemoveModelEvent(this.taskId);
+  const RemoveModelEvent(this.taskId, this.filePath);
 
   @override
-  List<Object> get props => [taskId];
+  List<Object> get props => [taskId, filePath];
 }

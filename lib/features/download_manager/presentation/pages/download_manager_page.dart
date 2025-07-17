@@ -76,7 +76,15 @@ class _DownloadManagerState extends State<DownloadManager> {
                 if (state is DownloadErrorState) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error: ${state.message}'),
+                      content: Text(state.message),
+                      backgroundColor: colorScheme.error,
+                    ),
+                  );
+                }
+                if (state is DownloadingModelState && state.error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${state.error}'),
                       backgroundColor: colorScheme.error,
                     ),
                   );
@@ -640,7 +648,7 @@ class _DownloadManagerState extends State<DownloadManager> {
                       ),
                       onPressed: () {
                         context.read<DownloadManagerBloc>().add(
-                          RemoveModelEvent(model.taskId),
+                          RemoveModelEvent(model.taskId, model.filePath),
                         );
                         // Delete model functionality
                       },

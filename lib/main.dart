@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
@@ -18,8 +17,6 @@ import 'features/onboarding/presentation/pages/onboarding_page.dart';
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
-
-  await FlutterDownloader.initialize(debug: true);
 
   // Initialize dependency injection
   await di.init();

@@ -14,15 +14,22 @@ class InitialDownloadManagerState extends DownloadManagerState {}
 class DownloadingModelState extends DownloadManagerState {
   final DownloadModel downloadModel;
   final bool isStopping;
+  final String? error;
 
-  const DownloadingModelState(this.downloadModel, {this.isStopping = false});
+  const DownloadingModelState(
+    this.downloadModel, {
+    this.isStopping = false,
+    this.error,
+  });
 
   DownloadingModelState copyWith({
     DownloadModel? downloadModel,
     bool? isStopping,
+    String? error,
   }) {
     return DownloadingModelState(
       downloadModel ?? this.downloadModel,
+      error: error ?? this.error,
       isStopping: isStopping ?? this.isStopping,
     );
   }
