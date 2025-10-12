@@ -15,12 +15,6 @@ abstract class RemoteChatDataSource {
     String modelName,
   );
 
-  Future<MessageModel> getAi4ChatResponse(
-    List<ApiMessageParams> userMessages,
-    String apiKey,
-    String modelName,
-  );
-
   Future<MessageModel> getClaudeResponse(
     List<ApiMessageParams> userMessages,
     String apiKey,
@@ -32,43 +26,6 @@ class RemoteChatDataSourceImpl implements RemoteChatDataSource {
   final http.Client client;
 
   RemoteChatDataSourceImpl({required this.client});
-
-  @override
-  Future<MessageModel> getAi4ChatResponse(
-    List<ApiMessageParams> userMessages,
-    String apiKey,
-    String modelName,
-  ) async {
-    try {
-      final uri = Uri.parse(AppConstants.ai4ChatBaseUrl);
-      print(
-        'userMessage: ${json.encode({'model': modelName, 'messages': userMessages})}',
-      );
-      final response = await client
-          .post(
-            uri,
-            headers: {
-              'Authorization': 'Bearer $apiKey',
-              'Content-Type': 'application/json',
-            },
-            body: json.encode({'model': modelName, 'messages': userMessages}),
-          )
-          .timeout(const Duration(seconds: 60));
-
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        final content = jsonResponse['choices'][0]['message']['content'] ?? '';
-        return MessageModel(content: content, role: MessageRole.assistant);
-      } else {
-        print('Error: ${response.statusCode} - ${response.body}');
-        throw ServerException(
-          message: 'Error ${response.statusCode}: ${response.body}',
-        );
-      }
-    } catch (e) {
-      throw ServerException(message: 'Error: $e');
-    }
-  }
 
   @override
   Future<MessageModel> getClaudeResponse(

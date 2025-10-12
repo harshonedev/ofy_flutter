@@ -15,7 +15,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   final List<_OnboardingSlide> _slides = const [
     _OnboardingSlide(
-      title: 'Welcome to OfflineAI',
+      title: 'Welcome to Ofy',
       description:
           'Chat with powerful AI models directly on your device. No internet required for local models! Enjoy privacy and instant responses.',
       icon: Icons.chat_bubble_outline,
@@ -45,7 +45,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -110,10 +110,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         width: _currentPage == index ? 16 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color:
-                              _currentPage == index
-                                  ? colorScheme.primary
-                                  : colorScheme.primary.withOpacity(0.3),
+                          color: _currentPage == index
+                              ? colorScheme.primary
+                              : colorScheme.primary.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),

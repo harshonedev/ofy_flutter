@@ -53,15 +53,11 @@ class ChatRepositoryImpl implements ChatRepository {
       try {
         // Get AI response
         final userMessagesForApi =
-            updatedMessages.map((message) => message.toApiMessageParams()).toList();
+            updatedMessages
+                .map((message) => message.toApiMessageParams())
+                .toList();
         MessageModel response;
-        if (modelType == ModelType.ai4Chat) {
-          response = await remoteDataSource.getAi4ChatResponse(
-            userMessagesForApi,
-            apiKey,
-            modelName,
-          );
-        } else if (modelType == ModelType.claude) {
+        if (modelType == ModelType.claude) {
           response = await remoteDataSource.getClaudeResponse(
             userMessagesForApi,
             apiKey,

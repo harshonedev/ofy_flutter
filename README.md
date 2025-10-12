@@ -1,6 +1,6 @@
-# LLM Chat App
+# Ofy Chat App
 
-A Flutter-based cross-platform chat application that integrates on-device generative AI for local inference of large language models (in GGUF format) using the [llama_cpp_dart](https://github.com/netdur/llama_cpp_dart) package.
+A Flutter-based cross-platform chat application that integrates on-device generative AI for local inference of large language models (in GGUF format) 
 
 ## Features
 
@@ -26,7 +26,6 @@ A Flutter-based cross-platform chat application that integrates on-device genera
 
 ## Dependencies
 
-- lcpp: ^0.2.5 (for local LLM inference)
 - flutter_bloc: ^9.1.0 (for state management)
 - get_it: ^8.0.3 (for dependency injection)
 - dartz: ^0.10.1 (for functional error handling)

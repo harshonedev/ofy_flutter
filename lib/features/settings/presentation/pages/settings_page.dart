@@ -153,19 +153,6 @@ class _SettingsPageState extends State<SettingsPage> {
               _controller.modelNameControllers[ModelType.claude]!,
         );
 
-      case ModelType.ai4Chat:
-        return ModelSettingsCard(
-          title: AppConstants.ai4ChatSettingsTitle,
-          icon: Icons.chat_outlined,
-          modelType: ModelType.ai4Chat,
-          showModelName: true,
-          apiKeyHint: 'Enter your AI4Chat API key',
-          modelNameHint: 'e.g., gpt-4, llama-3, or claude-opus',
-          colorScheme: colorScheme,
-          apiKeyController: _controller.apiKeyControllers[ModelType.ai4Chat]!,
-          modelNameController:
-              _controller.modelNameControllers[ModelType.ai4Chat]!,
-        );
     }
   }
 

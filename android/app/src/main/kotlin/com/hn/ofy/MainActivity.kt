@@ -1,4 +1,4 @@
-package com.app.offlineai
+package com.hn.ofy
 
 import io.flutter.embedding.android.FlutterActivity
 

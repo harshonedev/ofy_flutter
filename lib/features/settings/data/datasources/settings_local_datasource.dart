@@ -111,8 +111,6 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
         return 'openai';
       case ModelType.claude:
         return 'claude';
-      case ModelType.ai4Chat:
-        return 'ai4chat';
     }
   }
 
@@ -124,8 +122,6 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
         return ModelType.openAi;
       case 'claude':
         return ModelType.claude;
-      case 'ai4chat':
-        return ModelType.ai4Chat;
       default:
         return ModelType.local;
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:llm_cpp_chat_app/core/theme/util.dart';
 import 'package:llm_cpp_chat_app/features/chat/presentation/pages/chat_page.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/download_manager_bloc.dart';
 import 'package:llm_cpp_chat_app/features/download_manager/presentation/bloc/models_bloc.dart';
@@ -62,10 +63,13 @@ class MainApp extends StatelessWidget {
             );
           }
           final onboardingComplete = snapshot.data!;
+          // Use with Google Fonts package to use downloadable fonts
+          TextTheme textTheme = createTextTheme(context, "Poppins", "Poppins");
+          AppTheme appTheme = AppTheme(textTheme);
           return MaterialApp(
-            title: 'OfflineAI',
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
+            title: 'Ofy',
+            theme: appTheme.light(),
+            darkTheme: appTheme.dark(),
             debugShowCheckedModeBanner: false,
             themeMode: ThemeMode.system,
             home:

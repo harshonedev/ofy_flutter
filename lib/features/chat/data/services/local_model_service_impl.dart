@@ -1,12 +1,15 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:lcpp/lcpp.dart';
+import 'package:llama_sdk/llama_sdk.dart'
+    if (dart.library.html) 'package:llama_sdk/llama_sdk.web.dart';
 import 'dart:math' as math;
+import 'package:logger/logger.dart';
 
 import '../../domain/entities/message.dart';
 import '../../domain/services/local_model_service_interface.dart';
 
 class LocalModelServiceImpl implements LocalModelServiceInterface {
+  static final Logger _logger = Logger();
+
   Llama? _llama;
   StreamController<String>? _responseController;
   bool _isModelLoaded = false;
@@ -14,7 +17,7 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
   String _lastResponse = '';
 
   // Store conversation history
-  final List<ChatMessage> _conversationHistory = [];
+  final List<LlamaMessage> _conversationHistory = [];
 
   // Completion marker to signal end of response
   static const String completionMarker = "<<DONE>>";
@@ -43,8 +46,8 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
       _llama = Llama(
         LlamaController(
           modelPath: modelPath,
-          nCtx: 1024,
-          nBatch: 512,
+          nCtx: 2048,
+          nBatch: 2048,
           seed: math.Random().nextInt(1000000),
           greedy: false,
         ),
@@ -54,10 +57,10 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
       // Clear conversation history when loading new model
       _conversationHistory.clear();
       _lastResponse = '';
-      debugPrint("Model Loaded Successfully");
+      _logger.i("Model Loaded Successfully");
       return true;
     } catch (e) {
-      debugPrint('Error loading model: $e');
+      _logger.e('Error loading model: $e');
       _isModelLoaded = false;
       return false;
     }
@@ -88,14 +91,14 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
       // Add system message if needed
       if (_conversationHistory.isEmpty) {
         _conversationHistory.add(
-          ChatMessage.withRole(
+          LlamaMessage.withRole(
             role: 'system',
             content: 'You are a helpful assistant.',
           ),
         );
       }
 
-      final userMessage = ChatMessage.withRole(role: 'user', content: prompt);
+      final userMessage = LlamaMessage.withRole(role: 'user', content: prompt);
       _conversationHistory.add(userMessage);
 
       // Keep conversation history manageable
@@ -103,7 +106,7 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
         _conversationHistory.removeRange(0, _conversationHistory.length - 10);
       }
 
-      debugPrint('Sending prompt with ${_conversationHistory.length} messages');
+      _logger.d('Sending prompt with ${_conversationHistory.length} messages');
 
       final stream = _llama!.prompt(_conversationHistory);
 
@@ -113,16 +116,16 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
           _responseController?.add(response);
         },
         onError: (error) {
-          debugPrint('Error during inference: $error');
+          _logger.e('Error during inference: $error');
           _responseController?.addError('Error during inference: $error');
         },
         onDone: () {
-          debugPrint('Inference completed with response: $_lastResponse');
+          _logger.d('Inference completed with response: $_lastResponse');
 
           // Add assistant's response to history
           if (_lastResponse.isNotEmpty) {
             _conversationHistory.add(
-              ChatMessage.withRole(role: 'assistant', content: _lastResponse),
+              LlamaMessage.withRole(role: 'assistant', content: _lastResponse),
             );
           }
           _currentStreamSubscription = null;
@@ -132,7 +135,7 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
         },
       );
     } catch (e) {
-      debugPrint('Error sending prompt: $e');
+      _logger.e('Error sending prompt: $e');
       _responseController?.addError('Error sending prompt: $e');
     }
   }
@@ -149,7 +152,7 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
     return '';
   }
 
-  List<ChatMessage> convertAppMessages(List<Message> appMessages) {
+  List<LlamaMessage> convertAppMessages(List<Message> appMessages) {
     return appMessages.map((msg) {
       String role;
       switch (msg.role) {
@@ -163,7 +166,7 @@ class LocalModelServiceImpl implements LocalModelServiceInterface {
           role = 'system';
           break;
       }
-      return ChatMessage.withRole(role: role, content: msg.content);
+      return LlamaMessage.withRole(role: role, content: msg.content);
     }).toList();
   }
 

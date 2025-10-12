@@ -80,15 +80,7 @@ class ModelTypeSelectionCard extends StatelessWidget {
           groupValue: selectedModelType,
           colorScheme: colorScheme,
         ),
-        const SizedBox(height: 8),
-        ModelTypeOption(
-          title: AppConstants.ai4ChatModelLabel,
-          subtitle: 'Use AI4Chat API for cloud inference',
-          icon: Icons.chat_outlined,
-          value: ModelType.ai4Chat,
-          groupValue: selectedModelType,
-          colorScheme: colorScheme,
-        ),
+        
       ],
     );
   }
