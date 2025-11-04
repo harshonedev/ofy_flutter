@@ -9,7 +9,7 @@ A Flutter-based cross-platform chat application that integrates on-device genera
 <div align="center">
   
   [![Download APK](https://img.shields.io/badge/Download-APK-green?style=for-the-badge&logo=android)](https://github.com/harshonedev/ofy_flutter/releases/latest)
-  [![GitHub Release](https://img.shields.io/github/v/release/harshrajput1506/ofy_flutter?style=for-the-badge)](https://github.com/harshrajput1506/ofy_flutter/releases)
+  [![GitHub Release](https://img.shields.io/github/v/release/harshonedev/ofy_flutter?style=for-the-badge)](https://github.com/harshonedev/ofy_flutter/releases)
   [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
   
 </div>
@@ -32,19 +32,43 @@ A Flutter-based cross-platform chat application that integrates on-device genera
   <img src="assets/screenshots/05.png" alt="Screenshot 5" width="200"/>
 </div>
 
-## Getting Started
+## 🚀 Getting Started
+
+### For Users
+
+1. **Download the APK** from the [latest release](https://github.com/harshonedev/ofy_flutter/releases/latest)
+2. Install on your Android device
+3. **Download a GGUF model** from:
+   - [Hugging Face](https://huggingface.co/models?library=gguf)
+   - [TheBloke's Models](https://huggingface.co/TheBloke)
+4. Open Ofy and select your model file
+5. Start chatting with AI locally!
+
+### For Developers
 
 1. Clone this repository
-2. Run `flutter pub get` to install dependencies
-3. Launch the app on your device
-4. Select a GGUF model file from your device
-5. Start chatting with the AI!
+   ```bash
+   git clone https://github.com/harshonedev/ofy_flutter.git
+   cd ofy_flutter
+   ```
+2. Install dependencies
+   ```bash
+   flutter pub get
+   ```
+3. Run the app
+   ```bash
+   flutter run
+   ```
 
-## Requirements
+## 📋 Requirements
 
 - Flutter SDK ^3.7.2
+- Dart SDK (comes with Flutter)
 - A GGUF format model file
-- Android device (iOS support coming soon)
+- **Android**: API level 23 (Android 6.0) or higher
+- **Storage**: Sufficient space for model files (typically 2-8GB)
+- **RAM**: 4GB+ recommended for optimal performance
+- iOS support coming soon
 
 ## Dependencies
 
@@ -68,6 +92,77 @@ This project follows Clean Architecture principles with BLoC pattern for state m
 - **Repository Pattern**: Abstracting data sources
 - **Use Cases**: Encapsulating business logic operations
 
-## License
+## 🤝 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Ways to Contribute
+
+- 🐛 **Report Bugs**: Open an issue describing the bug and how to reproduce it
+- 💡 **Suggest Features**: Share your ideas for new features or improvements
+- 📖 **Improve Documentation**: Help make our docs clearer and more comprehensive
+- 🔧 **Submit Pull Requests**: Fix bugs or implement new features
+
+### Development Workflow
+
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes** following our code style
+4. **Test your changes** thoroughly
+5. **Commit your changes**
+   ```bash
+   git commit -m "Add: amazing feature description"
+   ```
+6. **Push to your fork**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. **Open a Pull Request** with a clear description of your changes
+
+### Code Style Guidelines
+
+- Follow [Effective Dart](https://dart.dev/guides/language/effective-dart) style guide
+- Use meaningful variable and function names
+- Add comments for complex logic
+- Write unit tests for new features
+- Keep commits atomic and well-described
+
+### Getting Help
+
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/harshonedev/ofy_flutter/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/harshonedev/ofy_flutter/issues)
+- 📧 **Email**: For sensitive matters, reach out via email
+
+## 🗺️ Roadmap
+
+- [ ] iOS support
+- [ ] Model management (download, delete, organize)
+- [ ] Conversation history persistence
+- [ ] Multiple chat sessions
+- [ ] Model parameter customization (temperature, top-p, etc.)
+- [ ] Voice input support
+- [ ] Export/Import conversations
+- [ ] Multi-language support
+
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Flutter team for the amazing framework
+- The open-source community for GGUF model format
+- All contributors and testers who help improve Ofy
+
+## 📞 Support
+
+If you find this project helpful, please consider:
+- ⭐ Starring the repository
+- 🐛 Reporting bugs
+- 💡 Suggesting new features
+- 🤝 Contributing to the codebase
+
+---
