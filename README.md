@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/icon/ofy_logo.png" alt="Ofy Logo" width="200"/>
+</div>
+
 # Ofy Chat App
 
 A Flutter-based cross-platform chat application that integrates on-device generative AI for local inference of large language models (in GGUF format) 
@@ -9,6 +13,16 @@ A Flutter-based cross-platform chat application that integrates on-device genera
 - Real-time token streaming for AI responses
 - Clean and intuitive UI with Material 3 design
 - BLoC architecture with GetIt dependency injection
+
+## Screenshots
+
+<div align="center">
+  <img src="assets/screenshots/01.png" alt="Screenshot 1" width="200"/>
+  <img src="assets/screenshots/02.png" alt="Screenshot 2" width="200"/>
+  <img src="assets/screenshots/03.png" alt="Screenshot 3" width="200"/>
+  <img src="assets/screenshots/04.png" alt="Screenshot 4" width="200"/>
+  <img src="assets/screenshots/05.png" alt="Screenshot 5" width="200"/>
+</div>
 
 ## Getting Started
 
