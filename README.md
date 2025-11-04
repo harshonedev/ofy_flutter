@@ -2,7 +2,7 @@
   <img src="assets/icon/ofy_logo.png" alt="Ofy Logo" width="200"/>
 </div>
 
-# Ofy Chat App
+# Ofy - Offline AI Chat App
 
 A Flutter-based cross-platform chat application that integrates on-device generative AI for local inference of large language models (in GGUF format) 
 
